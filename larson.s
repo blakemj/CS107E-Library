@@ -1,5 +1,5 @@
 /*
- * LARSON SCANNER
+ * LARSON SCANNER EXTENSION
  * BLAKE JONES-CS107E
  *
  * This code will set up 8 LEDs to light up in order back and forth
@@ -7,7 +7,7 @@
  * the NUMLED constant to 0x4.
  */
 
-.equ DELAY, 0x3F0000
+.equ DELAY, 0x8000
 .equ NUMLED, 0x8
 
 // configure GPIO PINS 20-27 for output
@@ -23,9 +23,11 @@ str r1, [r0]
 
 // set bit 20
 mov r1, #(1<<20)
-
+mov r5, #(0b111<<19)
+mov r6, #(0b11111<<18)
 //set a counter for the number of LEDs
 mov r2, #NUMLED
+mov r7, #20
 
 loop: 
 
@@ -36,18 +38,32 @@ str r1, [r0]
 // delay
 mov r4, #DELAY
 wait1:
+    sub r7, #1
+    ldr r0, SET0
+    str r1, [r0]
+    cmp r7, #3
+    bgt wait1
+    ldr r0, SET0
+    str r5, [r0]
+    cmp r7, #1
+    bgt wait1
+    ldr r0, SET0
+    str r6, [r0]
+    ldr r0, CLR0
+    str r6, [r0]
+    mov r7, #20
     subs r4, #1
     bne wait1
 
 // set GPIO low
-ldr r0, CLR0
-str r1, [r0] 
+//ldr r0, CLR0
+//str r1, [r0] 
 
 // delay
-mov r4, #DELAY
-wait2:
-    subs r4, #1
-    bne wait2
+//mov r4, #DELAY
+//wait2:
+//    subs r4, #1
+//    bne wait1
 
 //remove one from LED counter (How many LEDs left to turn on going FORWARD aka 20->27)
 //will branch to forward until needs to run in reverse
@@ -56,6 +72,8 @@ bne forward
 
 //REVERSE: change the GPIO to be set to the next one down (aka right shift)
 lsr r1, r1, #1
+lsr r5, r5, #1
+lsr r6, r6, #1
 mov r2, #1
 
 //Reverse LED counter subtracts by one and branches until at 0 (when needs to go forward)
@@ -72,6 +90,8 @@ forward:
     mov r3, #NUMLED
     sub r3, #1
     lsl r1, r1, #1
+    lsl r5, r5, #1
+    lsl r6, r6, #1
     b loop
 
 FSEL0: .word 0x20200000
