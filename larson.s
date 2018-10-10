@@ -7,7 +7,7 @@
  * the NUMLED constant to 0x4.
  */
 
-.equ DELAY, 0x3F0000
+.equ DELAY, 0x100000
 .equ NUMLED, 0x8
 
 // configure GPIO PINS 20-27 for output
@@ -42,12 +42,6 @@ wait1:
 // set GPIO low
 ldr r0, CLR0
 str r1, [r0] 
-
-// delay
-mov r4, #DELAY
-wait2:
-    subs r4, #1
-    bne wait2
 
 //remove one from LED counter (How many LEDs left to turn on going FORWARD aka 20->27)
 //will branch to forward until needs to run in reverse
