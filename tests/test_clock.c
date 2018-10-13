@@ -14,11 +14,27 @@ void test_gpio_set_get_function() {
     // Test get pin function after setting
     assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
 
+    // Test set pin to output
+    gpio_set_output(GPIO_PIN3);
+
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN3) == GPIO_FUNC_OUTPUT );
+
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
+
+    // Test set pin to output
+    gpio_set_output(GPIO_PIN47);
+
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN47) == GPIO_FUNC_OUTPUT );
 }
 
 void test_gpio_read_write() {
     gpio_init();
     gpio_set_function(GPIO_PIN20, GPIO_FUNC_OUTPUT);
+    gpio_set_function(GPIO_PIN45, GPIO_FUNC_OUTPUT);
+    gpio_set_function(GPIO_PIN19, GPIO_FUNC_OUTPUT);
 
     // Test gpio_write low, then gpio_read
     gpio_write(GPIO_PIN20, 0);
@@ -27,6 +43,12 @@ void test_gpio_read_write() {
    // Test gpio_write high, then gpio_read
     gpio_write(GPIO_PIN20, 1);
     assert( gpio_read(GPIO_PIN20) ==  1 );
+    // Test gpio_write high, then gpio_read
+    gpio_write(GPIO_PIN19, 1);
+    assert( gpio_read(GPIO_PIN19) ==  1 );
+    // Test gpio_write high, then gpio_read
+    gpio_write(GPIO_PIN45, 1);
+    assert( gpio_read(GPIO_PIN45) ==  1 );
 }
 
 void test_timer() {
@@ -34,7 +56,7 @@ void test_timer() {
 
     // Test timer tick count incrementing
     unsigned int start = timer_get_ticks();
-    for( int i=0; i<10; i++ ) { /* Spin */ }
+    for(volatile int i=0; i<10; i++ ) { /* Spin */ }
     unsigned int finish = timer_get_ticks();
     assert( finish > start );
 
@@ -50,7 +72,7 @@ void test_timer() {
 // and are ready to test them
 
 void main(void) {
-    // test_gpio_set_get_function();
-    // test_gpio_read_write();
-    // test_timer();
+     test_gpio_set_get_function();
+     test_gpio_read_write();
+     test_timer();
 }
