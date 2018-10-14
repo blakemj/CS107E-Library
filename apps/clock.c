@@ -1,9 +1,17 @@
 #include "../gpio.h"
 #include "../timer.h"
 
-void main(void)
-{
-    char digits[16];
+//These constants initialize and define the array of digits, and the first LEDs for the
+//digits and digit pieces in the sequence
+static char digits[16];
+static int FIRST_LED_GPIO = GPIO_PIN20;
+static int FIRST_DIGIT_GPIO = GPIO_PIN10;
+
+/*
+* This function simply initializes the array of possible digit types 0-F. The LED parts
+* are in order in the binary from A on the far right to DP on the far left.
+*/
+static void digits_init(void) {
     digits[0] = 0b00111111;
     digits[1] = 0b00000110;
     digits[2] = 0b01011011;
@@ -20,12 +28,63 @@ void main(void)
     digits[13] = 0b01011110;
     digits[14] = 0b01111001;
     digits[15] = 0b01110001;
-  //  gpio_set_output(GPIO_PIN10);
-//    gpio_write(GPIO_PIN10, 1);
+}
+
+/*
+* This function is used to turn on the light. The GPIO pins for the LEDs are set to be
+* on in the specific pattern passed in for the digit. Only the digit pin for the current
+* digit is turned on on the function, and after a delay for an unnoticable amount of time,
+* the digit pin is turned off in preparation for the next. By doing so, we can flash all
+* the digits on without having a pin for each small LED on the clock.
+*/
+static void turn_on_light(int digit, char pattern) {
     int find = 1;
-    int firstPin = GPIO_PIN20;
-    int firstDigit = GPIO_PIN10;
+    gpio_write(FIRST_DIGIT_GPIO + digit, 1);
+    for (int i = 0; i < 8; i++) {
+        find = find << i;
+        gpio_set_output(FIRST_LED_GPIO + i);
+        gpio_write(FIRST_LED_GPIO + i, (find & pattern) >> i);
+        find = find >> i; 
+    }
+    timer_delay_us(2500);
+    gpio_write(FIRST_DIGIT_GPIO + digit, 0);
+}
+
+/*
+* This function will simply set the digits from right to left to display the correct
+* pattern. The third digit is set to display the ones from the seconds, the second
+* is set to display the tens from the seconds, the first is set to display the ones
+* from the minutes, and the zero pin is set to display the tens from the minutes. 
+* Depending on what number of given time a digit is on, it will find the pattern from
+* the pattern array that corresponds and return it.
+*/
+static char figure_out_pattern(int digit, int sec, int tenSec, int min, int tenMin) {
     char pattern;
+    if (digit == 3) {
+        pattern = digits[sec];
+    } else if (digit == 2) {
+        pattern = digits[tenSec];
+    } else if (digit == 1) {
+        pattern = digits[min];
+    } else {
+        pattern = digits[tenMin];
+    }
+    return pattern;
+}
+
+/*
+* This function is used to run the clock. First, it initializes the variables being used.
+* It then initializes the start time of the program (so that the program starts at zero).
+* Then, in an endless loop, it will switch between the four digits and display the pattern
+* for the time on that digit. Once a given time number has reached its max (such as 9 sec
+* in the ones place for seconds before the tens place for seconds needs to be changed), it
+* will increase the next time digit by one and will reset back to zero. Further, after one
+* second, the start of the time for one second is reset to the current raspberry pi's timer
+* and the seconds ones digit is increased by one. This repeats every second exactly.
+*/ 
+void main(void)
+{
+    digits_init();
     int sec = 0;
     int tenSec = 0;
     int min = 0;
@@ -33,7 +92,7 @@ void main(void)
     int start = timer_get_ticks();
     while (1) {
         for (int digit = 0; digit < 4; digit++) {
-            gpio_set_output(firstDigit + digit);
+            gpio_set_output(FIRST_DIGIT_GPIO + digit);
             if (timer_get_ticks() - start >= 1000000) {
                 sec++;
                 start = timer_get_ticks();
@@ -50,39 +109,8 @@ void main(void)
                 tenMin++;
                 min = 0;
             }
-            if (digit == 3) {
-                pattern = digits[sec];
-            } else if (digit == 2) {
-                pattern = digits[tenSec];
-            } else if (digit == 1) {
-                pattern = digits[min];
-            } else {
-                pattern = digits[tenMin];
-            }
-            gpio_write(firstDigit + digit, 1);
-            for (int i = 0; i < 8; i++) {
-                find = find << i;
-                gpio_set_output(firstPin + i); 
-                gpio_write(firstPin + i, (find & pattern) >> i);
-                find = find >> i;
-            }
-            timer_delay_us(2500);
-            gpio_write(firstDigit + digit, 0);
+            char pattern = figure_out_pattern(digit, sec, tenSec, min, tenMin);
+            turn_on_light(digit, pattern);
         }    
     }
-//    while(1) {
-  //      for (int d = 0; d < 15; d++) {
-    //        char pattern = digits[d];
-      //      for (int a = 0; a < 0x50000; a++) {
-        //        gpio_set_output(GPIO_PIN10);
-          //      gpio_write(GPIO_PIN10, 1);
-            //    for (int i = 0; i < 8; i++) {
-              //      find = find << i;
-                //    gpio_set_output(firstPin + i);
-                  //  gpio_write(firstPin + i, (find & pattern) >> i);
-                    //find = find >> i;
-//                }
-  //          }
-    //    }
-//    }
 }
