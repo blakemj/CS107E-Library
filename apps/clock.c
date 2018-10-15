@@ -58,16 +58,16 @@ static void turn_on_light(int digit, char pattern) {
 * Depending on what number of given time a digit is on, it will find the pattern from
 * the pattern array that corresponds and return it.
 */
-static char figure_out_pattern(int digit, int sec, int tenSec, int min, int tenMin) {
+static char figure_out_pattern(int digit, int min, int tenMin, int hr, int tenHr) {
     char pattern;
     if (digit == 3) {
-        pattern = digits[sec];
-    } else if (digit == 2) {
-        pattern = digits[tenSec];
-    } else if (digit == 1) {
         pattern = digits[min];
-    } else {
+    } else if (digit == 2) {
         pattern = digits[tenMin];
+    } else if (digit == 1) {
+        pattern = digits[hr] | 0b10000000;
+    } else {
+        pattern = digits[tenHr];
     }
     return pattern;
 }
@@ -85,32 +85,49 @@ static char figure_out_pattern(int digit, int sec, int tenSec, int min, int tenM
 void main(void)
 {
     digits_init();
-    int sec = 0;
-    int tenSec = 0;
     int min = 0;
     int tenMin = 0;
+    int hr = 0;
+    int tenHr = 0;
     int start = timer_get_ticks();
+    int buttonPress = timer_get_ticks();
     while (1) {
         for (int digit = 0; digit < 4; digit++) {
             gpio_set_output(FIRST_DIGIT_GPIO + digit);
-            if (timer_get_ticks() - start >= 1000000) {
-                sec++;
-                start = timer_get_ticks();
-            }
-            if (sec == 10) {
-                tenSec++;
-                sec = 0;
-            }
-            if (tenSec == 6) {
+            if (timer_get_ticks() - start >= 1000000 * 60) {
                 min++;
-                tenSec = 0;
+                start = timer_get_ticks();
             }
             if (min == 10) {
                 tenMin++;
                 min = 0;
             }
-            char pattern = figure_out_pattern(digit, sec, tenSec, min, tenMin);
+            if (tenMin == 6) {
+                hr++;
+                tenMin = 0;
+            }
+            if (hr == 10) {
+                tenHr++;
+                hr = 0;
+            }
+            if (tenHr == 1 && hr == 3) {
+                tenHr =0;
+                hr = 1;
+            }
+            char pattern = figure_out_pattern(digit, min, tenMin, hr, tenHr);
             turn_on_light(digit, pattern);
+            gpio_set_input(GPIO_PIN2);
+            gpio_set_input(GPIO_PIN3);
+            int minButton = gpio_read(GPIO_PIN2);
+            int hrButton = gpio_read(GPIO_PIN3);
+            if (minButton == 0 && timer_get_ticks() - buttonPress >= 200000) {
+                min++;
+                buttonPress = timer_get_ticks();
+            }
+            if (hrButton == 0 && timer_get_ticks() - buttonPress >= 200000) {
+                hr++;
+                buttonPress = timer_get_ticks();
+            }
         }    
     }
 }
