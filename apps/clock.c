@@ -84,6 +84,8 @@ static char figure_out_pattern(int digit, int sec, int tenSec, int min, int tenM
 */ 
 void main(void)
 {
+    gpio_init();
+    timer_init();
     digits_init();
     int sec = 0;
     int tenSec = 0;

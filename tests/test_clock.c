@@ -14,7 +14,7 @@ void test_gpio_set_get_function() {
     // Test get pin function after setting
     assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
 
-    // Test set pin to output
+    // Test set pin to output for a pin directly next to another
     gpio_set_output(GPIO_PIN3);
 
     // Test get pin function after setting
@@ -23,11 +23,51 @@ void test_gpio_set_get_function() {
     // Test get pin function after setting
     assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
 
-    // Test set pin to output
+    // Test set pin to output for a pin in another register
     gpio_set_output(GPIO_PIN47);
 
     // Test get pin function after setting
     assert( gpio_get_function(GPIO_PIN47) == GPIO_FUNC_OUTPUT );
+
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
+    
+    // Test set pin to input for a pin directly next to another
+    gpio_set_input(GPIO_PIN3);
+    
+    //Test resetting everything to input (keeping pin 2 as output)
+    
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN3) == GPIO_FUNC_INPUT );
+    
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
+    
+    // Test set pin to input for a pin in another register
+    gpio_set_input(GPIO_PIN47);
+    
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN47) == GPIO_FUNC_INPUT );
+
+    // Test the other functions
+    
+    // Test set pin to alt func for a pin directly next to another
+    gpio_set_function(GPIO_PIN3, GPIO_FUNC_ALT3);
+    
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN3) == GPIO_FUNC_ALT3 );
+    
+    // Test get pin function after setting
+    assert( gpio_get_function(GPIO_PIN2) == GPIO_FUNC_OUTPUT );
+    
+    // Test set pin to out of range (shouldn't change anything)
+    gpio_set_function(GPIO_PIN47, 9);
+    
+    // Test get pin function after setting out of range, so should stay input
+    assert( gpio_get_function(GPIO_PIN47) == GPIO_FUNC_INPUT);
+
+// Test get pin function after setting out of range, so should be invalid
+    assert( gpio_get_function(73) == GPIO_INVALID_REQUEST );
 }
 
 void test_gpio_read_write() {
@@ -42,9 +82,9 @@ void test_gpio_read_write() {
 
    // Test gpio_write high, then gpio_read
     gpio_write(GPIO_PIN20, 1);
+    gpio_write(GPIO_PIN19, 1);
     assert( gpio_read(GPIO_PIN20) ==  1 );
     // Test gpio_write high, then gpio_read
-    gpio_write(GPIO_PIN19, 1);
     assert( gpio_read(GPIO_PIN19) ==  1 );
     // Test gpio_write high, then gpio_read
     gpio_write(GPIO_PIN45, 1);
