@@ -106,7 +106,7 @@ void main(void)
             //Used to roll over the second to the next digit after the final number 
             //for the digit is used--allows for time to increase after 10 seonds into
             //the tens digit, after 60 min into the minutes digit, and after 10 minutes
-            //into the tens digit
+            //into the tens digit. After 99min59sec, it will reset to 0.
             if (sec == 10) {
                 tenSec++;
                 sec = 0;
@@ -118,6 +118,12 @@ void main(void)
             if (min == 10) {
                 tenMin++;
                 min = 0;
+            }
+            if (tenMin == 10) {
+                sec = 0;
+                tenSec = 0;
+                min = 0;
+                tenMin = 0;
             }
    
             
