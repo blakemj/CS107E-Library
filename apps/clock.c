@@ -93,10 +93,18 @@ void main(void)
     while (1) {
         for (int digit = 0; digit < 4; digit++) {
             gpio_set_output(FIRST_DIGIT_GPIO + digit);
+           
+            //Increase the second by one after one second has elasped
             if (timer_get_ticks() - start >= 1000000) {
                 sec++;
                 start = timer_get_ticks();
             }
+           
+
+            //Used to roll over the second to the next digit after the final number 
+            //for the digit is used--allows for time to increase after 10 seonds into
+            //the tens digit, after 60 min into the minutes digit, and after 10 minutes
+            //into the tens digit
             if (sec == 10) {
                 tenSec++;
                 sec = 0;
@@ -109,6 +117,10 @@ void main(void)
                 tenMin++;
                 min = 0;
             }
+   
+            
+            //Find the pattern for the given time for the given digit
+            //Throughout the loop, this displays all four numbers for the time
             char pattern = figure_out_pattern(digit, sec, tenSec, min, tenMin);
             turn_on_light(digit, pattern);
         }    
