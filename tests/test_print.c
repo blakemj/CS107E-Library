@@ -45,6 +45,11 @@ static void test_strtonum(void)
 
     int val = strtonum(input, &rest);
     assert(val == 13 && rest == (input + strlen(input)));
+
+    const char *input2 = "0x15fc2hyz", *rest2;
+    
+    int val2 = strtonum(input2, &rest2);
+    assert(val2 == 90050 && rest2 == (input2 + strlen(input2) - 3));
 }
 
 
@@ -111,6 +116,6 @@ void main(void)
     test_strcmp();
     test_strlcat();
     test_strtonum();
-    test_to_base();
-    test_snprintf();
+//    test_to_base();
+//    test_snprintf();
 }
