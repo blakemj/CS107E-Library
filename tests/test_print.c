@@ -50,6 +50,16 @@ static void test_strtonum(void)
     
     int val2 = strtonum(input2, &rest2);
     assert(val2 == 90050 && rest2 == (input2 + strlen(input2) - 3));
+
+    const char *input3 = "a", *rest3;
+
+    int val3 = strtonum(input3, &rest3);
+    assert(val3 == 0 && rest3 == (input3));
+
+    const char *input4 = "14530ag", *rest4;
+    
+    int val4 = strtonum(input4, &rest4);
+    assert(val4 == 14530 && rest4 == (input4)+5);
 }
 
 
@@ -61,8 +71,8 @@ int signed_to_base(char *buf, int n, int val, int base, int min_width);
 static void test_to_base(void)
 {
     char buf[5];
-
-    int n = signed_to_base(buf, 5, -9999, 10, 6);
+int n = unsigned_to_base(buf, 20, 165488, 10, 10);
+//    int n = signed_to_base(buf, 5, -9999, 10, 6);
     assert(strcmp(buf, "-099") == 0 && n == 6);
 }
 
@@ -116,6 +126,6 @@ void main(void)
     test_strcmp();
     test_strlcat();
     test_strtonum();
-//    test_to_base();
+    test_to_base();
 //    test_snprintf();
 }

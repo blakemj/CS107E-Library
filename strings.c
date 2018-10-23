@@ -57,41 +57,40 @@ static unsigned int numToBeMultiplied(int i, int base) {
     return num;
 }
 
+static unsigned int findingNum(const char *str, int lastNum, int base) {
+    unsigned int total = 0;
+    for (int a = 0; a <= lastNum; a++) {
+        char charMult = '\0';
+        if (str[a] <= '9') charMult = str[a] - '0';
+        if (str[a] >= 'a' && str[a] <= 'f') charMult = str[a] - 'a' + 10;
+        if (str[a] >= 'A' && str[a] <= 'F') charMult = str[a] - 'A' + 10;
+        total = total + (charMult * numToBeMultiplied(lastNum - a, base));
+    }
+    return total;
+}
 
 unsigned int strtonum(const char *str, const char **endptr)
 {
-    volatile int firstNonNum = 0;
+    int lastNum = 0;
     volatile int base = 10;
-    int initLength = strlen(str) + 1;
+    int initLength = strlen(str);
     for (int i = 0; i < initLength; i++) {
-        //char charNeeded = str[i];
-        if (str[i] == '\0') {
-            firstNonNum = i;
-            *endptr = &str[i];
-            break;
-        } else if (str[0] == '0' && str[1] == 'x') {
+        if (str[0] == '0' && str[1] == 'x') {
             base = 16;
             if (i > 1 && (str[i] < '0' || (str[i] > '9' && str[i] < 'A') || (str[i] > 'F' && str[i] < 'a') || str[i] > 'f')) {
-                firstNonNum = i;
+                lastNum = i - 1;
                 *endptr = &str[i];
                 break;
             }
         } else {
             if (str[i] < '0' || str[i] > '9') {
-                firstNonNum = i;
+                lastNum = i - 1;
                 *endptr = &str[i];
                 break;
             }
         }
-      //  firstNonNum = i+1;
+        lastNum = i;
+        *endptr = &str[i + 1];
     }
-    unsigned int total = 0;
-    for (int a = 0; a < firstNonNum; a++) {
-        char charMult;
-        if (str[a] <= '9') charMult = str[a] - '0';
-        if (str[a] >= 'a' && str[a] <= 'f') charMult = str[a] - 'a' + 10;
-        if (str[a] >= 'A' && str[a] <= 'F') charMult = str[a] - 'A' + 10;
-        total = total + ((unsigned int)charMult * numToBeMultiplied(firstNonNum - 1 - a, base));
-    }
-    return total;
+    return findingNum(str, lastNum, base);
 }
