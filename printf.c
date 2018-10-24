@@ -79,10 +79,34 @@ static int fixBufPlacement(int placeholder, int numSize, int bufsize) {
     return placeholder;
 }
 
+static void stringArg(int * count, int * placeholder, char * arg, char * buf, int bufsize) {
+    char storeString[1024];
+    memcpy(storeString, arg, 1024);
+    int stringSize = strlen(storeString);
+    if (*placeholder + stringSize - 1 < bufsize) (char*)memcpy(&buf[*placeholder], storeString, stringSize);
+    *placeholder = *placeholder + stringSize - 1;
+    *count = *count + stringSize;
+}
+
+static void numArg(int * count, int * placeholder, int base, int width, int givenInt, unsigned int givenUnsigned, char * buf, int bufsize) {
+    int numSize = 0;
+    if (givenInt == 0) numSize = unsigned_to_base(&buf[*placeholder], bufsize - 1 - *placeholder, givenUnsigned, base, width);
+    if (givenUnsigned == 0) numSize = signed_to_base(&buf[*placeholder], bufsize - 1 - *placeholder, givenInt, base, width);
+    *placeholder = fixBufPlacement(*placeholder, numSize, bufsize);
+    *count = *count + numSize;
+}
+
+static void pointerArg(int * count, int * placeholder, char * buf, int width, int bufsize, unsigned int arg) {
+    buf[*placeholder] = '0';
+    buf[*placeholder + 1] = 'x';
+    *placeholder = *placeholder + 2;
+    *count = *count + 2;
+    numArg(count, placeholder, 16, width, 0, arg, buf, bufsize);
+}
+
 int vsnprintf(char *buf, int bufsize, const char *format, va_list args) 
 {
     int equalPoint = 0;
-   // va_start(args, format);
     int i = 0;
     int count = 0;
     while (format[equalPoint] != '\0') {
@@ -92,33 +116,20 @@ int vsnprintf(char *buf, int bufsize, const char *format, va_list args)
             format = temp;
             if (format[0] == 'd') {
                 equalPoint = 0;
-                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(args, int), 10, width);
-                i = fixBufPlacement(i, numSize, bufsize);
-                count = count + numSize; 
+                numArg(&count, &i, 10, width, va_arg(args, int), 0, buf, bufsize); 
             } else if (format[0] == 'x') {
                 equalPoint = 0;
-                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(args, unsigned int), 16, width);
-                i = fixBufPlacement(i, numSize, bufsize);
-                count = count + numSize; 
+                numArg(&count, &i, 16, width, 0, va_arg(args, unsigned int), buf, bufsize);
             } else if (format[0] == 'p') {
                 equalPoint = 0;
-                buf[i] = '0';
-                buf[i+1] = 'x';
-                int numSize = signed_to_base(&buf[i+2], bufsize - 3 - i, (int)va_arg(args, void*), 16, 8);
-                i = fixBufPlacement(i + 2, numSize, bufsize);
-                count = count + 2 + numSize;
+                pointerArg(&count, &i, buf, width, bufsize, (unsigned int)va_arg(args, void*)); 
             } else if (format[0] == 'c') {
                 equalPoint = 0;
                 if (i < bufsize) buf[i] = (char)va_arg(args, int);
                 count++;
             } else if (format[0] == 's') {
+                stringArg(&count, & i, va_arg(args, char*), buf, bufsize);
                 equalPoint = 0;
-                char storeString[1024];
-                (char*)memcpy(storeString, va_arg(args, char*), 1024);
-                int stringSize = strlen(storeString);
-                if (i + stringSize - 1 < bufsize) (char*)memcpy(&buf[i], storeString, stringSize);
-                i = i + stringSize - 1;
-                count = count + stringSize;
             }
         } else {
             if (i < bufsize) buf[i] = format[equalPoint];
@@ -127,7 +138,6 @@ int vsnprintf(char *buf, int bufsize, const char *format, va_list args)
         i++;
         equalPoint++;
     }
-   // va_end(args);
     buf[i] = '\0';
     return count;  
 }
