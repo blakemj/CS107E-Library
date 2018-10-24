@@ -71,8 +71,7 @@ int signed_to_base(char *buf, int n, int val, int base, int min_width);
 static void test_to_base(void)
 {
     char buf[5];
-int n = unsigned_to_base(buf, 20, 165488, 10, 10);
-//    int n = signed_to_base(buf, 5, -9999, 10, 6);
+    int n = signed_to_base(buf, 5, -9999, 10, 6);
     assert(strcmp(buf, "-099") == 0 && n == 6);
 }
 
@@ -88,6 +87,10 @@ static void test_snprintf(void)
     // Decimal
     snprintf(buf, bufsize, "%d", 45);
     assert(strcmp(buf, "45") == 0);
+
+    // Decimal
+    snprintf(buf, bufsize, "%05d", 45);
+    assert(strcmp(buf, "00045") == 0);
 
     // Hexadecimal
     snprintf(buf, bufsize, "%04x", 0xef);
@@ -127,5 +130,5 @@ void main(void)
     test_strlcat();
     test_strtonum();
     test_to_base();
-//    test_snprintf();
+    test_snprintf();
 }
