@@ -1,6 +1,7 @@
 #include "printf.h"
 #include <stdarg.h>
 #include "strings.h"
+#include "uart.h"
 
 #define MAX_OUTPUT_LEN 1024
 
@@ -69,12 +70,6 @@ int signed_to_base(char *buf, int bufsize, int val, int base, int min_width)
     return size;
 }
 
-int vsnprintf(char *buf, int bufsize, const char *format, va_list args) 
-{
-    /* TODO: Your code here */
-    return 0;
-}
-
 static int fixBufPlacement(int placeholder, int numSize, int bufsize) {
     if (numSize < bufsize - 1 - placeholder) {
         placeholder = placeholder + numSize - 1;
@@ -84,11 +79,10 @@ static int fixBufPlacement(int placeholder, int numSize, int bufsize) {
     return placeholder;
 }
 
-int snprintf(char *buf, int bufsize, const char *format, ...) 
+int vsnprintf(char *buf, int bufsize, const char *format, va_list args) 
 {
     int equalPoint = 0;
-    va_list ap;
-    va_start(ap, format);
+   // va_start(args, format);
     int i = 0;
     int count = 0;
     while (format[equalPoint] != '\0') {
@@ -98,29 +92,29 @@ int snprintf(char *buf, int bufsize, const char *format, ...)
             format = temp;
             if (format[0] == 'd') {
                 equalPoint = 0;
-                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(ap, int), 10, width);
+                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(args, int), 10, width);
                 i = fixBufPlacement(i, numSize, bufsize);
-                count = count + numSize;
+                count = count + numSize; 
             } else if (format[0] == 'x') {
                 equalPoint = 0;
-                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(ap, unsigned int), 16, width);
+                int numSize =  signed_to_base(&buf[i], bufsize - 1 - i,va_arg(args, unsigned int), 16, width);
                 i = fixBufPlacement(i, numSize, bufsize);
-                count = count + numSize;
+                count = count + numSize; 
             } else if (format[0] == 'p') {
                 equalPoint = 0;
                 buf[i] = '0';
                 buf[i+1] = 'x';
-                int numSize = signed_to_base(&buf[i+2], bufsize - 3 - i, (int)va_arg(ap, void*), 16, 8);
+                int numSize = signed_to_base(&buf[i+2], bufsize - 3 - i, (int)va_arg(args, void*), 16, 8);
                 i = fixBufPlacement(i + 2, numSize, bufsize);
                 count = count + 2 + numSize;
             } else if (format[0] == 'c') {
                 equalPoint = 0;
-                if (i < bufsize) buf[i] = (char)va_arg(ap, int);
+                if (i < bufsize) buf[i] = (char)va_arg(args, int);
                 count++;
             } else if (format[0] == 's') {
                 equalPoint = 0;
                 char storeString[1024];
-                (char*)memcpy(storeString, va_arg(ap, char*), 1024);
+                (char*)memcpy(storeString, va_arg(args, char*), 1024);
                 int stringSize = strlen(storeString);
                 if (i + stringSize - 1 < bufsize) (char*)memcpy(&buf[i], storeString, stringSize);
                 i = i + stringSize - 1;
@@ -133,13 +127,30 @@ int snprintf(char *buf, int bufsize, const char *format, ...)
         i++;
         equalPoint++;
     }
-    va_end(ap);
+   // va_end(args);
     buf[i] = '\0';
+    return count;  
+}
+
+int snprintf(char *buf, int bufsize, const char *format, ...) 
+{
+    va_list ap;
+    va_start(ap, format);
+    int count = vsnprintf(buf, bufsize, format, ap);
+    va_end(ap);
     return count;
 }
 
 int printf(const char *format, ...) 
 {
-    /* TODO: Your code here */
-    return 0;
+    char buf[1024];
+    va_list ap;
+    va_start(ap, format);
+    int count = vsnprintf(buf, 1024, format, ap);
+    int totalSize = strlen(buf);
+    for (int i = 0; i < totalSize; i++) {
+        uart_putchar(buf[i]);
+    }
+    va_end(ap);
+    return count;
 }
