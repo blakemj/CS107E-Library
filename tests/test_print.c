@@ -101,8 +101,8 @@ static void test_snprintf(void)
     assert(strcmp(buf, "0x20200004") == 0);
 
     // Character
-    snprintf(buf, bufsize, "%c", 'A');
-    assert(strcmp(buf, "A") == 0);
+   snprintf(buf, bufsize, "%c", 'A');
+   assert(strcmp(buf, "A") == 0);
 
     // String
     snprintf(buf, bufsize, "%s", "binky");
