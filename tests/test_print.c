@@ -17,9 +17,12 @@ static void test_memcpy(void)
 {
     int num1 = 0x12345678;
     int num2;
+    int num3 = 0x34;
 
     memcpy(&num2, &num1, sizeof(int));
     assert(num1 == num2);
+    memcpy(&num3, &num1, sizeof(int));
+    assert(num3 == num1);
 }
 
 static void test_strlen(void)
@@ -27,9 +30,12 @@ static void test_strlen(void)
     assert(strlen("green") == 5);
 }
 
+//Tested a lot in later functions as well
 static void test_strcmp(void)
 {
     assert(strcmp("apples", "apples") == 0);
+    assert(strcmp("pineapples", "pine") > 0);
+    assert(strcmp("pine", "pineapples") < 0);
 }
 
 static void test_strlcat(void)
@@ -101,8 +107,8 @@ static void test_snprintf(void)
     assert(strcmp(buf, "0x20200004") == 0);
 
     // Character
-   snprintf(buf, bufsize, "%c", 'A');
-   assert(strcmp(buf, "A") == 0);
+    snprintf(buf, bufsize, "%c", 'A');
+    assert(strcmp(buf, "A") == 0);
 
     // String
     snprintf(buf, bufsize, "%s", "binky");
@@ -110,11 +116,15 @@ static void test_snprintf(void)
 
     // Format string with intermixed codes
     snprintf(buf, bufsize, "CS%d%c!", 107, 'e');
-    assert(strcmp(buf, "CS107e!") == 0);
+    assert(strcmp("CS107e!", buf) == 0);
+
+    snprintf(buf, 7, "CS%d%c %s!", 107, 'e', "rocks");
+    assert(strcmp(buf, "CS107e") == 0);
 
     // Test return value
     assert(snprintf(buf, bufsize, "Hello") == 5);
     assert(snprintf(buf, 2, "Hello") == 5);
+    assert(strcmp(buf, "H") == 0);
 }
 
 
