@@ -22,6 +22,6 @@ void main(void)
     print_triangle(5);
     printf("We have %03d days until %s!", 6, "Halloween");
     printf("");
-    int * pizza = 0x20200008;
+    int * pizza = (int *)0x20200008;
     printf("\nMy %x pizzas are at address %p", 0x67, pizza);
 }
