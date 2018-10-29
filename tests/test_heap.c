@@ -47,6 +47,7 @@ static void test_heap_simple(void)
     memcpy(s, "hello", 6);
     s = realloc(s, 12);
     strlcat(s, " world", 12);
+//    printf("%s", s);
     assert(strcmp(s, "hello world") == 0);
     free(s);
 }
@@ -63,6 +64,7 @@ static void test_heap_multiple(void)
     for (int i = 0; i < n; i++) {
         int num_repeats = i + 1;
         char *ptr = malloc(num_repeats + 1);
+        printf("%s\n", ptr);
         assert(ptr != NULL);
         memset(ptr, 'A' - 1 + num_repeats, num_repeats);
         ptr[num_repeats] = '\0';
@@ -130,7 +132,7 @@ void main(void)
     printf("\n");
     test_backtrace_complex(7);  // Slightly tricky backtrace.
 
-    test_heap_simple();
+//    test_heap_simple();
     test_heap_multiple();
     test_heap_recycle(5); // increase the number for stress test
    // test_heap_redzones();

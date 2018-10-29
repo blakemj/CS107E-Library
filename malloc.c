@@ -15,6 +15,7 @@
 
 #include "malloc.h"
 #include <stddef.h> // for NULL
+#include "printf.h"
 #include "strings.h"
 
 extern int __bss_end__;
@@ -39,36 +40,58 @@ extern int __bss_end__;
 static void *heap_start = NULL;
 static int heap_used = 0, heap_max = TOTAL_HEAP_SIZE;
 
+static void reserve_space(void* start, size_t nbytes) {
+    *(unsigned int*)((char*)start + 8 + nbytes) = *(unsigned int*)start - (nbytes + 8);
+    *(unsigned int*)((char*)start + 8 + nbytes + 1) = 0;
+    *(unsigned int*)start = nbytes;
+    *((unsigned int*)start + 1) = 1;
+}
+
 void *malloc(size_t nbytes) 
 {
-    // TODO: replace with your code.
     if (!heap_start) {
+        heap_start = &__bss_end__;
+        *(unsigned int*)heap_start = TOTAL_HEAP_SIZE - 8;
+        *((unsigned int*)heap_start + 1) = 0;
+    }
+    if (heap_start != &__bss_end__) {
         heap_start = &__bss_end__;
     }
     nbytes = roundup(nbytes, 8);
-    if (heap_used + nbytes > heap_max)
-        return NULL;
-    void *alloc = (char *)heap_start + heap_used;
-    heap_used += nbytes;
-
-    return alloc;
+    while (*(unsigned int*)heap_start < heap_max) {
+        if ((*(unsigned int*)heap_start > nbytes + 8) && *((unsigned int*)heap_start + 1) == 0) {
+            void* start = heap_start;
+            reserve_space(start, nbytes);
+            printf("it worked");
+            return (void*)((unsigned int*)heap_start + 2);
+        } else {
+            heap_start = (void*)((char*)heap_start + *(unsigned int*)heap_start + 8);
+        }
+    }
+    return NULL;
 }
 
 void free(void *ptr) 
 {
-    // TODO: fill in your own code here.
+    *((unsigned int*)ptr - 1) = 0;
+    unsigned int next = *((unsigned int*)ptr - 2);
+    unsigned int* nextHeader = (unsigned int*)((char*)ptr + 8 + next);
+    while (*(nextHeader + 1) == 0) {
+        *((unsigned int*)ptr - 2) = *((unsigned int*)ptr - 2) + *nextHeader;
+        nextHeader = (unsigned int*)((char*)nextHeader + 8 + *nextHeader);
+    }
 }
 
 void *realloc (void *old_ptr, size_t new_size)
 {
-    // TODO: adapt to your allocator.
+    free(old_ptr);
+    if (*((unsigned int*)old_ptr - 2) > (roundup(new_size, 8) + 8)) {
+        reserve_space((void *)((unsigned int*) old_ptr - 2), roundup(new_size, 8));
+        return old_ptr;
+    }
     void *new_ptr = malloc(new_size);
     if (!new_ptr) return NULL;
-    // ideally would copy the min of new_size and old_size, but this allocator
-    // doesn't know the old_size. Why not? 
-    // Why is it "safe" (but not efficient) to always copy new_size?
     memcpy(new_ptr, old_ptr, new_size);
-    free(old_ptr);
     return new_ptr;
 }
 
