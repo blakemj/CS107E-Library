@@ -59,7 +59,7 @@ void *malloc(size_t nbytes)
         heap_start = &__bss_end__;
     }
     nbytes = roundup(nbytes, 8);
-    while (*(unsigned int*)heap_start <= TOTAL_HEAP_SIZE - 8) {
+    while (*(unsigned int*)heap_start <= TOTAL_HEAP_SIZE - 8 && nbytes != 0) {
         if ((*(unsigned int*)heap_start > nbytes + 8) && *((unsigned int*)heap_start + 1) == 0) {
             void* start = heap_start;
             reserve_space(start, nbytes);
@@ -85,7 +85,7 @@ void free(void *ptr)
 void *realloc (void *old_ptr, size_t new_size)
 {
     free(old_ptr);
-    if (*((unsigned int*)old_ptr - 2) > (roundup(new_size, 8) + 8)) {
+    if (*((unsigned int*)old_ptr - 2) > (roundup(new_size, 8) + 8) && old_ptr && new_size) {
         reserve_space((void *)((unsigned int*) old_ptr - 2), roundup(new_size, 8));
         return old_ptr;
     }

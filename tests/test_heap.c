@@ -136,5 +136,11 @@ void main(void)
     heap_dump();
     test_heap_recycle(10); // increase the number for stress test
     heap_dump();
+    int* empty = malloc(0);
+    heap_dump();
+    char* nonZero = realloc(empty, 10); //involves free(NULL)
+    heap_dump();
+    char* zeroAgain = realloc (nonZero, 0);
+    heap_dump();
    // test_heap_redzones();
 }
