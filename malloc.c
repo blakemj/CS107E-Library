@@ -42,7 +42,7 @@ static int heap_used = 0, heap_max = TOTAL_HEAP_SIZE;
 
 static void reserve_space(void* start, size_t nbytes) {
     *(unsigned int*)((char*)start + 8 + nbytes) = *(unsigned int*)start - (nbytes + 8);
-    *(unsigned int*)((char*)start + 8 + nbytes + 1) = 0;
+    *(unsigned int*)((char*)start + 8 + nbytes + 4) = 0;
     *(unsigned int*)start = nbytes;
     *((unsigned int*)start + 1) = 1;
 }
@@ -51,18 +51,18 @@ void *malloc(size_t nbytes)
 {
     if (!heap_start) {
         heap_start = &__bss_end__;
-        *(unsigned int*)heap_start = TOTAL_HEAP_SIZE - 8;
+        *(unsigned int*)heap_start = (heap_max - 8);
+//        printf("%x %x", *(unsigned int*)heap_start, TOTAL_HEAP_SIZE);
         *((unsigned int*)heap_start + 1) = 0;
     }
     if (heap_start != &__bss_end__) {
         heap_start = &__bss_end__;
     }
     nbytes = roundup(nbytes, 8);
-    while (*(unsigned int*)heap_start < heap_max) {
+    while (*(unsigned int*)heap_start <= TOTAL_HEAP_SIZE - 8) {
         if ((*(unsigned int*)heap_start > nbytes + 8) && *((unsigned int*)heap_start + 1) == 0) {
             void* start = heap_start;
             reserve_space(start, nbytes);
-            printf("it worked");
             return (void*)((unsigned int*)heap_start + 2);
         } else {
             heap_start = (void*)((char*)heap_start + *(unsigned int*)heap_start + 8);
@@ -75,9 +75,9 @@ void free(void *ptr)
 {
     *((unsigned int*)ptr - 1) = 0;
     unsigned int next = *((unsigned int*)ptr - 2);
-    unsigned int* nextHeader = (unsigned int*)((char*)ptr + 8 + next);
+    unsigned int* nextHeader = (unsigned int*)((char*)ptr + next);
     while (*(nextHeader + 1) == 0) {
-        *((unsigned int*)ptr - 2) = *((unsigned int*)ptr - 2) + *nextHeader;
+        *((unsigned int*)ptr - 2) = *((unsigned int*)ptr - 2) + *nextHeader + 8;
         nextHeader = (unsigned int*)((char*)nextHeader + 8 + *nextHeader);
     }
 }
@@ -96,5 +96,11 @@ void *realloc (void *old_ptr, size_t new_size)
 }
 
 void heap_dump () {
-    // TODO: fill in your own code here.
+//    printf("%d, %p\n", __bss_end__, &__bss_end__);
+    void* start = &__bss_end__;
+    while ((unsigned int*)start < (unsigned int*)&__bss_end__ + (TOTAL_HEAP_SIZE / 4)) {
+        printf("%p -> %x\n", start, *(unsigned int*)start);
+        printf("%p -> %x\n\n", (unsigned int*)start + 1, *((unsigned int*)start + 1));
+        start = (unsigned int*)start + (*(unsigned int*)start / 4 + 2);
+    }
 }

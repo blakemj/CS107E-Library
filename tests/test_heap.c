@@ -47,7 +47,6 @@ static void test_heap_simple(void)
     memcpy(s, "hello", 6);
     s = realloc(s, 12);
     strlcat(s, " world", 12);
-//    printf("%s", s);
     assert(strcmp(s, "hello world") == 0);
     free(s);
 }
@@ -64,7 +63,6 @@ static void test_heap_multiple(void)
     for (int i = 0; i < n; i++) {
         int num_repeats = i + 1;
         char *ptr = malloc(num_repeats + 1);
-        printf("%s\n", ptr);
         assert(ptr != NULL);
         memset(ptr, 'A' - 1 + num_repeats, num_repeats);
         ptr[num_repeats] = '\0';
@@ -94,6 +92,7 @@ static void test_heap_recycle(int max_iterations)
         int size = rand() % 1024;
         void *q = malloc(size);
         p = realloc(p, size);
+        heap_dump();
         heap_high = max(heap_high, max(p, q));
         free(q);
     }
@@ -101,7 +100,6 @@ static void test_heap_recycle(int max_iterations)
 
     printf("\nCompleted %d iterations. Heap grew to peak size of %d bytes.\n", i, (char *)heap_high - (char *)heap_low);
 }
-
 
 // static void test_heap_redzones(void)
 // {
@@ -132,8 +130,11 @@ void main(void)
     printf("\n");
     test_backtrace_complex(7);  // Slightly tricky backtrace.
 
-//    test_heap_simple();
+    test_heap_simple();
+    heap_dump();
     test_heap_multiple();
-    test_heap_recycle(5); // increase the number for stress test
+    heap_dump();
+    test_heap_recycle(10); // increase the number for stress test
+    heap_dump();
    // test_heap_redzones();
 }
