@@ -1,6 +1,7 @@
 APPLICATION = apps/heap
-MY_MODULES =  backtrace.o malloc.o  printf.o  strings.o gpio.o timer.o
+MY_MODULES =  backtrace.o malloc.o 
 
+# printf.o  strings.o gpio.o timer.o
 # can be added to MY_MODULES to use your own code
 
 # MY_MODULES is a list of those library modules (such as gpio.o) 
