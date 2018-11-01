@@ -1,5 +1,6 @@
 #include "printf.h"
 #include "uart.h"
+#include "strings.h"
 
 static void print_triangle(int nlevels)
 {
@@ -24,4 +25,12 @@ void main(void)
     printf("");
     int * pizza = (int *)0x20200008;
     printf("\nMy %x pizzas are at address %p", 0x67, pizza);
+    char buf[10];
+    printf ("\n%c, %c\n",*(buf - 1), *(buf + 10));
+    snprintf(buf, 10, "%020x", 5);
+    printf ("\n%c, %c\n",*(buf - 1), *(buf + 10));
+    printf ("\n%s", buf);
+    char ** test;
+    printf ("\n%d", strtonum("m-21", test));
+    printf ("\n%s", *test);
 }

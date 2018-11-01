@@ -54,10 +54,14 @@ static void need_for_reshift(char * buf, int * size, int * sizeOverflow, int buf
 * digit from val before the division. This is put into the buf string from right to left.
 */
 static void put_in_char(char *buf, int bufsize, unsigned int val, int base, int * size, int * sizeOverflow) {
+    if (val == 0) {
+        if (bufsize > 1) buf [bufsize - 2] = '0';
+        (*size)++;
+    }
     while (val) {
         (*size)++;
         need_for_reshift(buf, size, sizeOverflow, bufsize);
-        buf[bufsize - 1 - *size + *sizeOverflow] = find_value(val, base);
+        if (bufsize > 1) buf[bufsize - 1 - *size + *sizeOverflow] = find_value(val, base);
         val = val / base;
     }
 }
@@ -166,8 +170,8 @@ static void stringArg(int * count, int * placeholder, char * arg, char * buf, in
 */
 static void numArg(int * count, int * placeholder, int base, int width, int givenInt, unsigned int givenUnsigned, char * buf, int bufsize) {
     int numSize = 0;
-    if (givenInt == 0) numSize = unsigned_to_base(&buf[*placeholder], bufsize - 1 - *placeholder, givenUnsigned, base, width);
-    if (givenUnsigned == 0) numSize = signed_to_base(&buf[*placeholder], bufsize - 1 - *placeholder, givenInt, base, width);
+    if (givenInt == 0) numSize = unsigned_to_base(&buf[*placeholder], bufsize - *placeholder, givenUnsigned, base, width);
+    if (givenUnsigned == 0) numSize = signed_to_base(&buf[*placeholder], bufsize - *placeholder, givenInt, base, width);
     *placeholder = fixBufPlacement(*placeholder, numSize, bufsize);
     *count = *count + numSize;
 }
@@ -198,6 +202,7 @@ static void do_code(const char * format, char * buf, int bufsize, int width, va_
     } else if (format[0] == 'x') {
         numArg(count, placeholder, BASE_SIXTEEN, width, 0, va_arg(*args, unsigned int), buf, bufsize);
     } else if (format[0] == 'p') {
+        width = 8;
         pointerArg(count, placeholder, buf, width, bufsize, (unsigned int)va_arg(*args, void*));
     } else if (format[0] == 'c') { //This will simply place the character as the next character in the string.
         if (*placeholder < bufsize - 1) buf[*placeholder] = (char)va_arg(*args, int);

@@ -57,11 +57,11 @@ int strcmp(const char *s1, const char *s2)
 int strlcat(char *dst, const char *src, int maxsize)
 {
     int dstSizeInitial = strlen(dst);
-    for (int i = 0; i < maxsize - dstSizeInitial - 1; i++) {
+    for (int i = 0; i < maxsize - dstSizeInitial; i++) {
         dst[dstSizeInitial + i] = src[i];
         if (src[i] == '\0') return strlen(dst);
     }
-    dst[maxsize - dstSizeInitial] = '\0';
+    dst[maxsize - 1] = '\0';
     return strlen(dst);
 }
 
