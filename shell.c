@@ -7,16 +7,70 @@
 #include "uart.h"
 
 #define LINE_LEN 80
+#define NUM_COMMANDS 5
 
 static int (*shell_printf)(const char * format, ...);
 
 static const command_t commands[] = {
     {"help",   "<cmd> prints a list of commands or description of cmd", cmd_help},
     {"echo",   "<...> echos the user input to the screen", cmd_echo},
-    {},
-    {},
-    {},
+    {"reboot", "reboot the Raspberry Pi back to the bootloader", cmd_reboot},
+    {"peek",   "<address> prints the contents (4 bytes) of memory at address", cmd_peek},
+    {"poke",   "<address> <value> stores `value` into the memory at `address`", cmd_poke},
 };
+
+int cmd_poke(int argc, const char *argv[])
+{
+    if (argc <= 2) {
+        shell_printf("error: poke requires 2 arguments [address] and [value]\n");
+        return 1;
+    } else { 
+        const char** temp = (const char**)NULL;
+        unsigned int address = strtonum(argv[1], temp);
+        if(address % 4 != 0) {
+            shell_printf("error: poke address must be 4-byte aligned\n");
+            return 1;
+        } else if (address == 0 && strcmp(argv[1], "0") != 0 && strcmp(argv[1], "0x0") != 0) {
+            shell_printf("error: poke cannot convert '%s'.\n", argv[1]);
+            return 1;
+        }
+        unsigned int value = strtonum(argv[2], temp);
+        if (value == 0 && strcmp(argv[2], "0") != 0 && strcmp(argv[2], "0x0") != 0) {
+            shell_printf("error: poke cannot convert '%s'.\n", argv[2]);
+            return 1;
+        }
+        *(unsigned int*)address = value;
+        shell_printf("0x%08x: %08x\n", address, *(unsigned int*)address);
+        return 0;
+    }
+    return 1;
+}
+
+int cmd_peek(int argc, const char *argv[])
+{       
+    if (argc == 1) {
+        shell_printf("error: peek requires 1 argument [address]\n");
+        return 1;
+    } else {
+        const char** temp = (const char**)NULL;
+        unsigned int address = strtonum(argv[1], temp);
+        if(address % 4 != 0) {
+            shell_printf("error: peek address must be 4-byte aligned\n");
+            return 1;
+        } else if (address == 0 && strcmp(argv[1], "0") != 0 && strcmp(argv[1], "0x0") != 0) {
+            shell_printf("error: peek cannot convert '%s'.\n", argv[1]);
+            return 1;
+        }
+        shell_printf("0x%08x: %08x\n", address, *(unsigned int*)address);
+        return 0;
+    }
+    return 1;
+}
+
+int cmd_reboot(int argc, const char* argv[]) {
+    pi_reboot();
+    return 0;
+}
 
 int cmd_echo(int argc, const char *argv[]) 
 {
@@ -28,8 +82,22 @@ int cmd_echo(int argc, const char *argv[])
 
 int cmd_help(int argc, const char *argv[]) 
 {
-    // TODO: your code here
-    return 0;
+    if (argc == 1) {
+        for (int i = 0; i < NUM_COMMANDS; i++) {
+            shell_printf("%s: %s\n", commands[i].name, commands[i].description);
+        }
+        return 0;
+    } else {
+        for (int i = 0; i < NUM_COMMANDS; i++) {
+            if (strcmp(argv[1], commands[i].name) == 0) {
+                shell_printf("%s: %s\n", commands[i].name, commands[i].description);
+                return 0;
+            }
+        }
+        shell_printf("error: no such command '%s'.\n", argv[1]);
+        return 1;
+    }
+    return 1;
 }
 
 void shell_init(formatted_fn_t print_fn)
@@ -94,10 +162,18 @@ int shell_evaluate(const char *line)
     int tokenIndex = tokenizer(temp, tokens);
     if (strcmp(tokens[0], "echo") == 0) {
         commands[1].fn(tokenIndex, (const char**)tokens);
-//        cmd_echo(tokenIndex, (const char**)tokens);
     }
-    if (strcmp(tokens[1], "reboot") == 0) {
-        pi_reboot();
+    if (strcmp(tokens[0], "reboot") == 0) {
+        commands[2].fn(tokenIndex, (const char**)tokens);
+    }
+    if (strcmp(tokens[0], "help") == 0) {
+        commands[0].fn(tokenIndex, (const char**)tokens);
+    }
+    if (strcmp(tokens[0], "peek") == 0) {
+        commands[3].fn(tokenIndex, (const char**)tokens);
+    }
+    if (strcmp(tokens[0], "poke") == 0) {
+        commands[4].fn(tokenIndex, (const char**)tokens);
     }
     free(temp);
     return 0;
