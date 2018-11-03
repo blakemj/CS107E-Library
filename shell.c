@@ -19,6 +19,23 @@ static const command_t commands[] = {
     {"poke",   "<address> <value> stores `value` into the memory at `address`", cmd_poke},
 };
 
+static int peek_and_poke_error_check(unsigned int address, unsigned int value, const char* argv[], char* callerName) {
+    if(address % 4 != 0) {
+        shell_printf("error: %s address must be 4-byte aligned\n", callerName);
+        return 1;
+    } else if (address == 0 && strcmp(argv[1], "0") != 0 && strcmp(argv[1], "0x0") != 0) {
+        shell_printf("error: %s cannot convert '%s'.\n", callerName, argv[1]);
+        return 1;
+    }
+    if (strcmp(callerName, "poke") == 0) {
+        if (value == 0 && strcmp(argv[2], "0") != 0 && strcmp(argv[2], "0x0") != 0) {
+            shell_printf("error: poke cannot convert '%s'.\n", argv[2]);
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int cmd_poke(int argc, const char *argv[])
 {
     if (argc <= 2) {
@@ -27,18 +44,8 @@ int cmd_poke(int argc, const char *argv[])
     } else { 
         const char** temp = (const char**)NULL;
         unsigned int address = strtonum(argv[1], temp);
-        if(address % 4 != 0) {
-            shell_printf("error: poke address must be 4-byte aligned\n");
-            return 1;
-        } else if (address == 0 && strcmp(argv[1], "0") != 0 && strcmp(argv[1], "0x0") != 0) {
-            shell_printf("error: poke cannot convert '%s'.\n", argv[1]);
-            return 1;
-        }
         unsigned int value = strtonum(argv[2], temp);
-        if (value == 0 && strcmp(argv[2], "0") != 0 && strcmp(argv[2], "0x0") != 0) {
-            shell_printf("error: poke cannot convert '%s'.\n", argv[2]);
-            return 1;
-        }
+        if (peek_and_poke_error_check(address, value, argv, "poke") == 1) return 1;
         *(unsigned int*)address = value;
         shell_printf("0x%08x: %08x\n", address, *(unsigned int*)address);
         return 0;
@@ -54,13 +61,7 @@ int cmd_peek(int argc, const char *argv[])
     } else {
         const char** temp = (const char**)NULL;
         unsigned int address = strtonum(argv[1], temp);
-        if(address % 4 != 0) {
-            shell_printf("error: peek address must be 4-byte aligned\n");
-            return 1;
-        } else if (address == 0 && strcmp(argv[1], "0") != 0 && strcmp(argv[1], "0x0") != 0) {
-            shell_printf("error: peek cannot convert '%s'.\n", argv[1]);
-            return 1;
-        }
+        if (peek_and_poke_error_check(address, 0, argv, "peek") == 1) return 1;
         shell_printf("0x%08x: %08x\n", address, *(unsigned int*)address);
         return 0;
     }
@@ -110,6 +111,19 @@ void shell_bell(void)
     uart_putchar('\a');
 }
 
+static int backspace(int placeOnLine) {
+    if (placeOnLine != 0) {
+        uart_putchar('\b');
+        uart_putchar(' ');
+        uart_putchar('\b');
+        placeOnLine = placeOnLine - 2;
+    } else {
+        shell_bell();
+        placeOnLine--;
+    }
+    return placeOnLine;
+}
+
 void shell_readline(char buf[], int bufsize)
 {
     for (int i = 0; i < bufsize - 1; i++) {
@@ -119,15 +133,7 @@ void shell_readline(char buf[], int bufsize)
             buf[i] = '\0';
             return;
         } else if (userTyped == '\b') {
-            if (i != 0) {
-                uart_putchar('\b');
-                uart_putchar(' ');
-                uart_putchar('\b');
-                i = i - 2;
-            } else {
-                shell_bell();
-                i--;
-            }
+            i = backspace(i);
         } else {
             buf[i] = userTyped;
             uart_putchar(userTyped);
