@@ -162,11 +162,7 @@ unsigned char keyboard_read_next(void)
         if (event.modifiers & KEYBOARD_MOD_SHIFT) toBeReturned = event.key.other_ch;
         if (event.key.ch >= 'a' && event.key.ch <= 'z') {
             if (event.modifiers & KEYBOARD_MOD_CAPS_LOCK) {
-                if (event.modifiers & KEYBOARD_MOD_SHIFT) {
-                    toBeReturned = event.key.ch;
-                } else {
-                    toBeReturned = event.key.other_ch;
-                }
+                toBeReturned = event.key.other_ch;
             }
         }
     }
