@@ -126,6 +126,12 @@ key_event_t keyboard_read_event(void)
     key_event_t event;
     event.seq_len = keyboard_read_sequence(event.seq);
     event.key = ps2_keys[event.seq[event.seq_len - 1]];
+    if (event.seq[0] == PS2_CODE_EXTEND) {
+        if (event.seq[event.seq_len - 1] == 0x75) event.key.ch = PS2_KEY_ARROW_UP;
+        if (event.seq[event.seq_len - 1] == 0x6b) event.key.ch = PS2_KEY_ARROW_LEFT;
+        if (event.seq[event.seq_len - 1] == 0x72) event.key.ch = PS2_KEY_ARROW_DOWN;
+        if (event.seq[event.seq_len - 1] == 0x74) event.key.ch = PS2_KEY_ARROW_RIGHT;
+    }
     if (event.seq[event.seq_len - 2] == PS2_CODE_RELEASE) {
         event.action = KEYBOARD_ACTION_UP;
         event = change_modifiers(event);
@@ -163,6 +169,11 @@ unsigned char keyboard_read_next(void)
         if (event.key.ch >= 'a' && event.key.ch <= 'z') {
             if (event.modifiers & KEYBOARD_MOD_CAPS_LOCK) {
                 toBeReturned = event.key.other_ch;
+            }
+            if (event.modifiers & KEYBOARD_MOD_CTRL) {
+                if (event.key.ch == 'a') toBeReturned = 0xfa;
+                if (event.key.ch == 'e') toBeReturned = 0xfe;
+                if (event.key.ch == 'u') toBeReturned = 0xfd;
             }
         }
     }

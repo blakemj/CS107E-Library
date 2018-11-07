@@ -9,6 +9,9 @@
 #define LINE_LEN 80
 #define NUM_COMMANDS 5
 
+static int numHistoryInArray = 0;
+static int searchingHistory = 0;
+static char commandHistory[10][1024];
 static int (*shell_printf)(const char * format, ...);
 
 // This is the table of commands in the form of a struct
@@ -165,17 +168,43 @@ void shell_bell(void)
 * the backspace, then it will sound the bell sound. This function will also adjust the
 * placement index on the line from the shell_readline function.
 */
-static int backspace(int placeOnLine) {
+static int backspace(int placeOnLine, int* size, char* buf, int delete) {
     if (placeOnLine != 0) {
         uart_putchar('\b');
         uart_putchar(' ');
         uart_putchar('\b');
-        placeOnLine = placeOnLine - 2;
+        placeOnLine--;
     } else {
         shell_bell();
         placeOnLine--;
     }
+    if (placeOnLine > -1 && !delete) {
+        placeOnLine--;
+        for (int moveBack = placeOnLine + 1; moveBack < *size + 1; moveBack++) {
+            buf[moveBack] = buf[moveBack + 1];
+        }
+        (*size)--;
+        for (int putBack = placeOnLine + 1; putBack < *size; putBack++) uart_putchar(buf[putBack]);
+        uart_putchar(' ');
+        for (int bringCursorBack = placeOnLine + 1; bringCursorBack < *size + 1; bringCursorBack++) uart_putchar('\b');
+        }
     return placeOnLine;
+}
+
+static int moveCursorToEnd(int placeholder, int size, char* buf) {
+    for (int place = placeholder; place < size; place++) {
+        uart_putchar(buf[place]);
+    }
+    return size;
+}
+
+static int delete(int placeholder, int * size, char* buf) {
+    placeholder = moveCursorToEnd(placeholder, *size, buf);
+    while (placeholder != 0) {
+        placeholder = backspace(placeholder, size, buf, 1);
+        (*size)--;
+    }
+    return placeholder;
 }
 
 /*
@@ -185,17 +214,69 @@ static int backspace(int placeOnLine) {
 */
 void shell_readline(char buf[], int bufsize)
 {
+    int size = 0;
     for (int i = 0; i < bufsize - 1; i++) {
         unsigned char userTyped = keyboard_read_next();
         if(userTyped == '\n') {
+            i = moveCursorToEnd(i, size, buf);
             uart_putchar(userTyped);
             buf[i] = '\0';
             return;
         } else if (userTyped == '\b') {
-            i = backspace(i);
+            i = backspace(i, &size, buf, 0);
+        } else if (userTyped == PS2_KEY_ARROW_LEFT) {
+            if (i != 0) {
+                i = i-2;
+                uart_putchar('\b');
+            } else {
+                shell_bell();
+                i--;
+            }
+        } else if (userTyped == PS2_KEY_ARROW_RIGHT) {
+            if (i < size) {
+                uart_putchar(buf[i]);
+            } else {
+                shell_bell();
+                i--;
+            }
+        } else if (userTyped == PS2_KEY_ARROW_UP) {
+            if (searchingHistory < numHistoryInArray) {
+                i = delete(i, &size, buf);
+                if (searchingHistory >= 10) {
+                    searchingHistory--;
+                    shell_bell();
+                }
+                shell_printf("%s", commandHistory[searchingHistory]);
+                memcpy(buf, commandHistory[searchingHistory], bufsize);
+                i = strlen(commandHistory[searchingHistory]);
+                size = strlen(commandHistory[searchingHistory]);
+                searchingHistory++;
+            } else {
+                shell_bell();
+                i--;
+            }
+        } else if (userTyped == 0xfa) {
+            for (int place = i; place > 0; place--) {
+                uart_putchar('\b');
+            }
+            i = -1;
+        } else if (userTyped == 0xfe) {
+            i = moveCursorToEnd(i, size, buf) - 1;
+        } else if (userTyped == 0xfd) {
+            i = delete(i, &size, buf);
+            i--;    
         } else {
+            char nextTemp = buf[i];
+            for (int move = i; move < size; move++) {
+                char curTemp = buf[move+1];
+                buf[move+1] = nextTemp;
+                nextTemp = curTemp;
+            }
             buf[i] = userTyped;
             uart_putchar(userTyped);
+            size++;
+            moveCursorToEnd(i + 1, size, buf);
+            for (int bringCursorBack = i+1; bringCursorBack < size; bringCursorBack++) uart_putchar('\b');
         }
     }
     buf[bufsize - 1] = '\0';
@@ -226,6 +307,18 @@ static int tokenizer(char* temp, char** tokens) {
     return tokenIndex;
 }
 
+static void putLineInHistory(const char* line) {
+    char temp[1024];
+    if (numHistoryInArray < 10) numHistoryInArray++;
+    memcpy(temp, line, 1024);
+    for (int i = 0; i < numHistoryInArray; i++) {
+        char nextTemp[1024];
+        memcpy(nextTemp, commandHistory[i], 1024);
+        memcpy(commandHistory[i], temp, 1024);
+        memcpy(temp, nextTemp, 1024);
+    }
+}
+
 /*
 * This function takes in the line after the user hits return and evaluates the command
 * that it should follow. First, it places the line as saved by the user into the heap
@@ -237,6 +330,7 @@ static int tokenizer(char* temp, char** tokens) {
 */
 int shell_evaluate(const char *line)
 {
+    putLineInHistory(line);
     if(line[0] == '\0') return 0;
     char* temp = malloc(strlen(line) + 1);
     memcpy(temp, line, strlen(line) + 1);
@@ -268,13 +362,16 @@ int shell_evaluate(const char *line)
 */
 void shell_run(void)
 {
+    int commandNum = 0;
     shell_printf("Welcome to the CS107E shell. Remember to type on your PS/2 keyboard!\n");
     while (1) 
     {
+        commandNum++;
         char line[LINE_LEN];
 
-        shell_printf("Pi> ");
+        shell_printf("[%d] Pi> ", commandNum);
         shell_readline(line, sizeof(line));
+        searchingHistory = 0;
         shell_evaluate(line);
     }
 }
