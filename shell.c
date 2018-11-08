@@ -7,12 +7,22 @@
 #include "uart.h"
 
 #define LINE_LEN 80
-#define NUM_COMMANDS 5
+#define NUM_COMMANDS 6
 
 static int numHistoryInArray = 0;
 static int searchingHistory = 0;
 static char commandHistory[10][1024];
 static int (*shell_printf)(const char * format, ...);
+
+int cmd_history(int argc, const char *argv[])
+{
+    int counter = 1;
+    for (int i = numHistoryInArray; i > 0; i--) {
+        shell_printf("%d %s\n", counter, commandHistory[i - 1]);
+        counter++;
+    }
+    return 0;
+}
 
 // This is the table of commands in the form of a struct
 // Order is name, description, function
@@ -22,6 +32,7 @@ static const command_t commands[] = {
     {"reboot", "reboot the Raspberry Pi back to the bootloader", cmd_reboot},
     {"peek",   "<address> prints the contents (4 bytes) of memory at address", cmd_peek},
     {"poke",   "<address> <value> stores `value` into the memory at `address`", cmd_poke},
+    {"history", "displays the history of recent commands", cmd_history},
 };
 
 /*
@@ -240,17 +251,32 @@ void shell_readline(char buf[], int bufsize)
                 i--;
             }
         } else if (userTyped == PS2_KEY_ARROW_UP) {
+            if (searchingHistory == -1) searchingHistory++;
             if (searchingHistory < numHistoryInArray) {
                 i = delete(i, &size, buf);
-                if (searchingHistory >= 10) {
-                    searchingHistory--;
-                    shell_bell();
-                }
                 shell_printf("%s", commandHistory[searchingHistory]);
                 memcpy(buf, commandHistory[searchingHistory], bufsize);
                 i = strlen(commandHistory[searchingHistory]);
                 size = strlen(commandHistory[searchingHistory]);
                 searchingHistory++;
+            } else {
+                shell_bell();
+                i--;
+            }
+        } else if (userTyped == PS2_KEY_ARROW_DOWN) {
+            if (searchingHistory == numHistoryInArray) searchingHistory--;
+            if (searchingHistory > 0) {
+                searchingHistory--; 
+                i = delete(i, &size, buf);
+                shell_printf("%s", commandHistory[searchingHistory]);
+                memcpy(buf, commandHistory[searchingHistory], bufsize);
+                i = strlen(commandHistory[searchingHistory]);
+                size = strlen(commandHistory[searchingHistory]);
+            } else if (searchingHistory == 0) {
+                i = delete(i, &size, buf);
+                size = 0;
+                searchingHistory--;
+                i--;
             } else {
                 shell_bell();
                 i--;
@@ -319,6 +345,25 @@ static void putLineInHistory(const char* line) {
     }
 }
 
+static int findPrefixInHistory(char* prefixedString, char* token) {
+    int prefixSize = strlen(token);
+    for (int commandNum = 0; commandNum < numHistoryInArray; commandNum++) {
+        int correctCommand = 1;
+        for (int prefixIndex = 1; prefixIndex < prefixSize; prefixIndex++) {
+            if (token[prefixIndex] != commandHistory[commandNum][prefixIndex - 1]) {
+                correctCommand = 0;
+                break;
+            }
+        }
+        if (correctCommand) {
+            memcpy(prefixedString, commandHistory[commandNum], 1024);
+            return 1;
+        }
+    }
+    memcpy(prefixedString, "Error: No command with given prefix!", 1024);
+    return 0;
+}
+
 /*
 * This function takes in the line after the user hits return and evaluates the command
 * that it should follow. First, it places the line as saved by the user into the heap
@@ -330,13 +375,27 @@ static void putLineInHistory(const char* line) {
 */
 int shell_evaluate(const char *line)
 {
-    putLineInHistory(line);
     if(line[0] == '\0') return 0;
     char* temp = malloc(strlen(line) + 1);
     memcpy(temp, line, strlen(line) + 1);
     char* tokens[strlen(temp)];
     int errorReturned = 1;
     int tokenIndex = tokenizer(temp, tokens);
+    if (strcmp(tokens[0], "!!") == 0) {
+        char temp[1024];
+        memcpy(temp, commandHistory[0], 1024);
+        errorReturned = shell_evaluate(temp);
+    } else if (tokens[0][0] == '!') {
+        char prefixedString[1024];
+        int foundCommand = findPrefixInHistory(prefixedString, tokens[0]);
+        if (foundCommand) {
+            errorReturned = shell_evaluate(prefixedString);
+        } else {
+            shell_printf("%s\n", prefixedString);
+        }
+    } else {
+        putLineInHistory(line);
+    }
     if (strcmp(tokens[0], "echo") == 0) {
         errorReturned = commands[1].fn(tokenIndex, (const char**)tokens);
     }
@@ -351,6 +410,9 @@ int shell_evaluate(const char *line)
     }
     if (strcmp(tokens[0], "poke") == 0) {
         errorReturned = commands[4].fn(tokenIndex, (const char**)tokens);
+    }
+    if (strcmp(tokens[0], "history") == 0) {
+        errorReturned = commands[5].fn(tokenIndex, (const char**)tokens);
     }
     free(temp);
     return errorReturned;
