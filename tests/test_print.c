@@ -77,9 +77,10 @@ int signed_to_base(char *buf, int n, int val, int base, int min_width);
 static void test_to_base(void)
 {
     char buf[5];
-    int n = signed_to_base(buf, 1, 0xa, 10, 0);
+    int n = signed_to_base(buf, 2, -322, 10, 6);
 //    int n = signed_to_base(buf, 5, -9999, 10, 6);
-    assert(strcmp(buf, "") == 0 && n == 2);
+//    assert(strcmp(buf, "") == 0 && n == 2);
+    printf("%s\n", buf);
 }
 
 static void test_snprintf(void)

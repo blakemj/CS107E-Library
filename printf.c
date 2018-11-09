@@ -76,7 +76,7 @@ static void move_for_width(char * buf, int * size, int * sizeOverflow, int bufsi
     while (*size < min_width) {
         (*size)++;
         need_for_reshift(buf, size, sizeOverflow, bufsize);
-        buf[bufsize - 1 - *size + *sizeOverflow] = '0';
+        if (bufsize > 1) buf[bufsize - 1 - *size + *sizeOverflow] = '0';
     }
 }
 
