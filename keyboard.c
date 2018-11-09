@@ -6,6 +6,10 @@
 //This defines how many bits represent the data being sent
 #define NUM_DATA_BITS 8
 
+#define MOVE_TO_START_CODE 0xfa
+#define MOVE_TO_END_CODE 0xfe
+#define DELETE_LINE_CODE 0xfd
+
 //This defines the pins for the clock and data
 const unsigned int CLK  = GPIO_PIN23;
 const unsigned int DATA = GPIO_PIN24; 
@@ -126,6 +130,12 @@ key_event_t keyboard_read_event(void)
     key_event_t event;
     event.seq_len = keyboard_read_sequence(event.seq);
     event.key = ps2_keys[event.seq[event.seq_len - 1]];
+    if (event.seq[0] == PS2_CODE_EXTEND) {
+        if (event.seq[event.seq_len - 1] == 0x75) event.key.ch = PS2_KEY_ARROW_UP;
+        if (event.seq[event.seq_len - 1] == 0x6b) event.key.ch = PS2_KEY_ARROW_LEFT;
+        if (event.seq[event.seq_len - 1] == 0x72) event.key.ch = PS2_KEY_ARROW_DOWN;
+        if (event.seq[event.seq_len - 1] == 0x74) event.key.ch = PS2_KEY_ARROW_RIGHT;
+    }
     if (event.seq[event.seq_len - 2] == PS2_CODE_RELEASE) {
         event.action = KEYBOARD_ACTION_UP;
         event = change_modifiers(event);
@@ -149,8 +159,9 @@ key_event_t keyboard_read_event(void)
 * and then it will return the character. If shift is pressed, it will return the capital
 * version of the character (or the secondary special character). If caps lock is pressed,
 * it will return the capital of the letters (but the special characters and numbers will
-* be unaffected). If shift is pressed with caps lock, it will go back to the regular version
-* of the chaacter (or will do the shift of the numbers or special characters).
+* be unaffected). If control is pressed, then it will check if it is one of the shortcut
+* codes (a, e, or u; a for going to the first character on a line, e for going to the last
+* character in a line, or u for deleting a whole line.
 */
 unsigned char keyboard_read_next(void) 
 {
@@ -163,6 +174,11 @@ unsigned char keyboard_read_next(void)
         if (event.key.ch >= 'a' && event.key.ch <= 'z') {
             if (event.modifiers & KEYBOARD_MOD_CAPS_LOCK) {
                 toBeReturned = event.key.other_ch;
+            }
+            if (event.modifiers & KEYBOARD_MOD_CTRL) {
+                if (event.key.ch == 'a') toBeReturned = MOVE_TO_START_CODE;
+                if (event.key.ch == 'e') toBeReturned = MOVE_TO_END_CODE;
+                if (event.key.ch == 'u') toBeReturned = DELETE_LINE_CODE;
             }
         }
     }
