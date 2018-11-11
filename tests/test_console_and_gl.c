@@ -19,14 +19,16 @@
 #define _WIDTH 640
 #define _HEIGHT 512
 
-#define _NROWS 10
+#define _NROWS 25
 #define _NCOLS 20
 
 static void test_console(void)
 {
     console_init(_NROWS, _NCOLS);
 
-    console_printf("HELLO\r\n");
+    console_printf("Hi Avery.\nHow are you doing today?");
+
+    console_printf("\nHELLO\r\n");
 
     timer_delay(3);
     console_printf("\f");
@@ -46,8 +48,12 @@ static void test_gl(void)
     // Basic rectangle should be blue in center of screen
     gl_draw_rect(_WIDTH/2 - 20, _HEIGHT/2 - 20, 40, 40, GL_BLUE);
 
+//    gl_clear(gl_color(0xFF, 0, 0)); // Background should be purple.
+
     // Should write a single character
-    gl_draw_char(60, 10, 'A', GL_BLUE);
+//    gl_draw_char(60, 10, 'A', GL_BLUE);
+
+//    gl_draw_string(60, 10, "Hi Avery.", GL_BLUE);
 
     gl_swap_buffer();
 }
@@ -55,7 +61,7 @@ static void test_gl(void)
 void main(void)
 {
     test_console();
-    test_gl();
+//    test_gl();
 
     /* TODO: Add tests here to test your graphics library and console.
        For the framebuffer and graphics libraries, make sure to test

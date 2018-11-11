@@ -197,9 +197,7 @@ void shell_bell(void)
 */
 static int backspace(int placeOnLine, int* size, char* buf, int delete) {
     if (placeOnLine != 0) {
-        uart_putchar('\b');
-        uart_putchar(' ');
-        uart_putchar('\b');
+        shell_printf("\b \b");
         placeOnLine--;
     } else {
         shell_bell();
@@ -211,9 +209,9 @@ static int backspace(int placeOnLine, int* size, char* buf, int delete) {
             buf[moveBack] = buf[moveBack + 1];
         }
         (*size)--;
-        for (int putBack = placeOnLine + 1; putBack < *size; putBack++) uart_putchar(buf[putBack]);
-        uart_putchar(' ');
-        for (int bringCursorBack = placeOnLine + 1; bringCursorBack < *size + 1; bringCursorBack++) uart_putchar('\b');
+        for (int putBack = placeOnLine + 1; putBack < *size; putBack++) shell_printf("%c", buf[putBack]);
+        shell_printf(" ");
+        for (int bringCursorBack = placeOnLine + 1; bringCursorBack < *size + 1; bringCursorBack++) shell_printf("\b");
         }
     return placeOnLine;
 }
@@ -223,7 +221,7 @@ static int backspace(int placeOnLine, int* size, char* buf, int delete) {
 */
 static int moveCursorToEnd(int placeholder, int size, char* buf) {
     for (int place = placeholder; place < size; place++) {
-        uart_putchar(buf[place]);
+        shell_printf("%c", buf[place]);
     }
     return size;
 }
@@ -249,7 +247,7 @@ static int delete(int placeholder, int * size, char* buf) {
 static int movingCursorLeft(int placeholder) {
     if (placeholder != 0) {
         placeholder = placeholder - 2;
-        uart_putchar('\b');
+        shell_printf("\b");
     } else {
         shell_bell();
         placeholder--;
@@ -264,7 +262,7 @@ static int movingCursorLeft(int placeholder) {
 */
 static int movingCursorRight(char* buf, int placeholder, int size) {
     if (placeholder < size) {
-        uart_putchar(buf[placeholder]);
+        shell_printf("%c", buf[placeholder]);
     } else {
         shell_bell();
         placeholder--;
@@ -341,7 +339,7 @@ void shell_readline(char buf[], int bufsize)
         unsigned char userTyped = keyboard_read_next();
         if(userTyped == '\n') {
             i = moveCursorToEnd(i, size, buf);
-            uart_putchar(userTyped);
+            shell_printf("%c", userTyped);
             buf[i] = '\0';
             return;
         } else if (userTyped == '\b') {
@@ -356,7 +354,7 @@ void shell_readline(char buf[], int bufsize)
             i = searchingDownHistory(buf, i, &size, bufsize);
         } else if (userTyped == MOVE_TO_START_CODE) {
             for (int place = i; place > 0; place--) {
-                uart_putchar('\b');
+                shell_printf("\b");
             }
             i = -1;
         } else if (userTyped == MOVE_TO_END_CODE) {
@@ -372,10 +370,10 @@ void shell_readline(char buf[], int bufsize)
                 nextTemp = curTemp;
             }
             buf[i] = userTyped;
-            uart_putchar(userTyped);
+            shell_printf("%c", userTyped);
             size++;
             moveCursorToEnd(i + 1, size, buf);
-            for (int bringCursorBack = i+1; bringCursorBack < size; bringCursorBack++) uart_putchar('\b');
+            for (int bringCursorBack = i+1; bringCursorBack < size; bringCursorBack++) shell_printf("\b");
         }
     }
     buf[bufsize - 1] = '\0';

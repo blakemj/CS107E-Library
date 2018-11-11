@@ -1,5 +1,6 @@
 #include "mailbox.h"
 #include "fb.h"
+#include "strings.h"
 
 // This prevents the GPU and CPU from caching mailbox messages
 #define GPU_NOCACHE 0x40000000
@@ -27,7 +28,11 @@ void fb_init(unsigned int width, unsigned int height, unsigned int depth, unsign
   fb.width = width;
   fb.virtual_width = width;
   fb.height = height;
-  fb.virtual_height = height;
+  if (mode == FB_SINGLEBUFFER) {
+      fb.virtual_height = height;
+  } else {
+      fb.virtual_height = 2 * height;
+  }
   fb.depth = depth * 8; // convert number of bytes to number of bits
   fb.x_offset = 0;
   fb.y_offset = 0;
@@ -44,36 +49,50 @@ void fb_init(unsigned int width, unsigned int height, unsigned int depth, unsign
 
 void fb_swap_buffer(void)
 {
-    // TODO: implement this function
+    if (fb.height == fb.virtual_height) return;
+    if (fb.y_offset) {
+        memcpy((char*)fb.framebuffer + fb.pitch * fb.height, (char*)fb.framebuffer, fb.pitch * fb.height); 
+        fb.y_offset = 0;
+    } else {
+        memcpy((char*)fb.framebuffer, (char*)fb.framebuffer + fb.pitch * fb.height, fb.pitch * fb.height);
+        fb.y_offset = fb.height;
+    }
+    mailbox_write(MAILBOX_FRAMEBUFFER, (unsigned)&fb + GPU_NOCACHE);
+    (void) mailbox_read(MAILBOX_FRAMEBUFFER);
 }
 
 unsigned char* fb_get_draw_buffer(void)
 {
-    // TODO: implement this function
+    if (fb.height == fb.virtual_height) return (unsigned char*)fb.framebuffer;
+    if (fb.y_offset) {
+        return (unsigned char*)fb.framebuffer;
+    } else {
+        return (unsigned char*)fb.framebuffer + fb.pitch * fb.height;
+    }
     return 0;
 }
 
 unsigned int fb_get_width(void)
 {
     // TODO: implement this function
-    return 0;
+    return fb.width;
 }
 
 unsigned int fb_get_height(void)
 {
     // TODO: implement this function
-    return 0;
+    return fb.height;
 }
 
 unsigned int fb_get_depth(void)
 {
     // TODO: implement this function
-    return 0;
+    return fb.depth;
 }
 
 unsigned int fb_get_pitch(void)
 {
     // TODO: implement this function
-    return 0;
+    return fb.pitch;
 }
 
