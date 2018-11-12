@@ -21,7 +21,7 @@ void console_init(unsigned int nrows, unsigned int ncols)
 
 void console_clear(void)
 {
-    gl_clear(0xff000000);
+    gl_clear(GL_WHITE);
 }
 
 static void scroll() {
@@ -53,7 +53,7 @@ static void drawLine(char* str) {
             lineNum = 0;
             xCoord = 0;
         } else {
-            gl_draw_char(xCoord * gl_get_char_width(), lineNum * font_get_height(), str[charIndex], 0xffff0000);
+            gl_draw_char(xCoord * gl_get_char_width(), lineNum * font_get_height(), str[charIndex], GL_WHITE);
             xCoord++;
         } 
     }
