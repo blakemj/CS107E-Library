@@ -102,6 +102,7 @@ int cmd_peek(int argc, const char *argv[])
 * This function will reboot the pi.
 */
 int cmd_reboot(int argc, const char* argv[]) {
+    shell_printf("\04");
     pi_reboot();
     return 0;
 }
@@ -245,18 +246,20 @@ int shell_evaluate(const char *line)
     int tokenIndex = tokenizer(temp, tokens);
     if (strcmp(tokens[0], "echo") == 0) {
         errorReturned = commands[1].fn(tokenIndex, (const char**)tokens);
-    }
+    } else
     if (strcmp(tokens[0], "reboot") == 0) {
         errorReturned = commands[2].fn(tokenIndex, (const char**)tokens);
-    }
+    } else
     if (strcmp(tokens[0], "help") == 0) {
         errorReturned = commands[0].fn(tokenIndex, (const char**)tokens);
-    }
+    } else
     if (strcmp(tokens[0], "peek") == 0) {
         errorReturned = commands[3].fn(tokenIndex, (const char**)tokens);
-    }
+    } else
     if (strcmp(tokens[0], "poke") == 0) {
         errorReturned = commands[4].fn(tokenIndex, (const char**)tokens);
+    } else {
+        shell_printf("Error: Not a command.\n");
     }
     free(temp);
     return errorReturned;
