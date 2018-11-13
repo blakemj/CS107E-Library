@@ -43,7 +43,7 @@ void gl_clear(color_t c)
 void gl_draw_pixel(int x, int y, color_t c)
 {
     unsigned (*drawSpace)[gl_get_width()] = (unsigned (*)[gl_get_width()])fb_get_draw_buffer();
-    if (x < gl_get_width() && y < gl_get_height()) drawSpace[y][x] = c;
+    if (x < fb_get_width() && y < fb_get_height()) drawSpace[y][x] = c;
 }
 
 color_t gl_read_pixel(int x, int y)
@@ -96,4 +96,3 @@ unsigned int gl_get_char_width(void)
 {
     return font_get_width();
 }
-

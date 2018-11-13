@@ -41,6 +41,10 @@ static void test_gl(void)
 
     gl_clear(gl_color(0xFF, 0, 0xFF)); // Background should be purple.
 
+    gl_draw_rect(0, 0, _WIDTH, _HEIGHT, GL_RED);
+
+    gl_draw_rect(0, 0, _WIDTH + 30, _HEIGHT + 30, GL_RED);
+
     // Draw an amber pixel at an arbitrary spot.
     gl_draw_pixel(_WIDTH/3, _HEIGHT/3, GL_AMBER);
     assert(gl_read_pixel(_WIDTH/3, _HEIGHT/3) == GL_AMBER);
@@ -60,8 +64,8 @@ static void test_gl(void)
 
 void main(void)
 {
-    test_console();
-//    test_gl();
+//    test_console();
+    test_gl();
 
     /* TODO: Add tests here to test your graphics library and console.
        For the framebuffer and graphics libraries, make sure to test

@@ -21,7 +21,7 @@ void console_init(unsigned int nrows, unsigned int ncols)
 
 void console_clear(void)
 {
-    gl_clear(GL_WHITE);
+    gl_clear(GL_BLACK);
 }
 
 static void scroll() {
