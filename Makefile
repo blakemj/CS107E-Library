@@ -1,29 +1,17 @@
-APPLICATION = apps/console_shell
-MY_MODULES = keyboard.o shell.o console.o gl.o fb.o malloc.o backtrace.o printf.o strings.o gpio.o timer.o
-#  Can be added to MY_MODULES to use your own code
+NAME = apps/interrupts_console_shell
+# Add any modules for which you want to use your own code for assign7, rest will be drawn from library
+MY_MODULES = keyboard.o gprof.o
 
-# MY_MODULES is a list of those library modules (such as gpio.o) 
-# for which you intend to use your own code. The reference implementation
-# from our libraries will be used for any module you do not name in this list.
-# Editing this list allows you to control whether the application being 
-# built is using your code or the reference implementation for each module 
-# on a per-module basis. Great for testing!
-# NOTE: when you name a module in this list, it must provide definitions 
-# for all of the symbols in the entire module. For example, if you list 
-# gpio.o as one of your modules, your gpio.o must define gpio_set_function, 
-# gpio_get_function, ... and so on for all functions declared in the gpio.h 
-# header file. If your module forgets to implement any of the needed 
-# functions, the linker will bring in gpio.o from reference libpi to 
-# resolve the missing definition. But you can't have both gpio.o modules!
-# The linker will report multiple definition errors for every function
-# that occurs in both your gpio.o and the reference gpio.o. No bueno! 
+# This is the list of modules for building libmypi.a
+LIBMYPI_MODULES = timer.o gpio.o strings.o printf.o backtrace.o malloc.o keyboard.o shell.o fb.o gl.o console.o
 
-CFLAGS = -I$(CS107E)/include -g -Wall -Og -std=c99 -ffreestanding 
-CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name -Wpointer-arith
-LDFLAGS = -nostdlib -T memmap -L$(CS107E)/lib
-LDLIBS = -lpi -lgcc
+CFLAGS  = -I$(CS107E)/include -g -Wall -Wpointer-arith
+CFLAGS += -Og -std=c99 -ffreestanding
+CFLAGS += -mapcs-frame -fno-omit-frame-pointer -mpoke-function-name
+LDFLAGS = -nostdlib -T memmap -L. -L$(CS107E)/lib
+LDLIBS  = -lpi -lgcc
 
-all : $(APPLICATION).bin $(MY_MODULES)
+all : $(NAME).bin $(MY_MODULES)
 
 %.bin: %.elf
 	arm-none-eabi-objcopy $< -O binary $@
@@ -37,21 +25,32 @@ all : $(APPLICATION).bin $(MY_MODULES)
 %.o: %.s
 	arm-none-eabi-as $(ASFLAGS) $< -o $@
 
+libmypi.a: $(LIBMYPI_MODULES) Makefile
+	rm -f $@
+	arm-none-eabi-ar cDr $@ $(filter %.o,$^)
+
 %.list: %.o
 	arm-none-eabi-objdump --no-show-raw-insn -d $< > $@
 
-install: $(APPLICATION).bin
+install: $(NAME).bin
 	rpi-install.py -p $<
 
-test: tests/test_console_and_gl.bin
+test: tests/test_keyboard_interrupts.bin
 	rpi-install.py -p $<
+
+bonus: $(NAME)-bonus.bin
+	rpi-install.py -p $<
+
+# Note: link is now against local libmypi first
+%-bonus.elf: %.o start.o cstart.o libmypi.a
+	arm-none-eabi-gcc $(LDFLAGS) $(filter %.o,$^) -lmypi $(LDLIBS) -o $@
 
 clean:
-	rm -f *.o *.bin *.elf *.list *~
+	rm -f *.o *.bin *.elf *.list *~ libmypi.a
 
-.PHONY: all clean install test
+.PHONY: all clean install test bonus
 
-.PRECIOUS: %.elf %.o
+.PRECIOUS: %.elf %.o %.a
 
 # empty recipe used to disable built-in rules for native build
 %:%.c
