@@ -52,12 +52,12 @@ static void test_gl(void)
     // Basic rectangle should be blue in center of screen
     gl_draw_rect(_WIDTH/2 - 20, _HEIGHT/2 - 20, 40, 40, GL_BLUE);
 
-//    gl_clear(gl_color(0xFF, 0, 0)); // Background should be purple.
+    gl_clear(gl_color(0xFF, 0, 0)); // Background should be purple.
 
     // Should write a single character
-//    gl_draw_char(60, 10, 'A', GL_BLUE);
+    gl_draw_char(60, 10, 'A', GL_BLUE);
 
-//    gl_draw_string(60, 10, "Hi Avery.", GL_BLUE);
+    gl_draw_string(60, 10, " \bHi Avery.", GL_BLUE);
 
     gl_swap_buffer();
 }

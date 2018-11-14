@@ -1,5 +1,6 @@
 APPLICATION = apps/console_shell
-MY_MODULES = keyboard.o shell.o console.o gl.o fb.o malloc.o backtrace.o printf.o strings.o gpio.o timer.o
+MY_MODULES = shell.o console.o gl.o fb.o
+# keyboard.o malloc.o backtrace.o printf.o strings.o gpio.o timer.o
 #  Can be added to MY_MODULES to use your own code
 
 # MY_MODULES is a list of those library modules (such as gpio.o) 
