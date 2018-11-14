@@ -58,7 +58,8 @@ static void scroll() {
 * will draw a rectangle the color of the background. This ensures that when backspacing, the previous character is covered.
 * Otherwise, the character is simply drawn from the graphics library.
 */
-static void drawLine(char* str) {
+static int drawLine(char* str) {
+    int numCharsDrawn = 0;
     for (int charIndex = 0; charIndex < strlen(str); charIndex++) {
         if (xCoord != 0 && xCoord % numCols == 0) {
             lineNum++;
@@ -77,14 +78,17 @@ static void drawLine(char* str) {
             console_clear();
             lineNum = 0;
             xCoord = 0;
-        } else if (str[charIndex] == ' ') {
+        } else if (str[charIndex] == ' ' || str[charIndex] == '\r') {
             gl_draw_rect(xCoord * gl_get_char_width(), lineNum * font_get_height(), gl_get_char_width(), font_get_height(), BACK_COLOR);
             xCoord++;
+            numCharsDrawn++;
         } else {
+            numCharsDrawn++;
             gl_draw_char(xCoord * gl_get_char_width(), lineNum * font_get_height(), str[charIndex], CHAR_COLOR);
             xCoord++;
         } 
     }
+    return numCharsDrawn;
 }
 
 /*
@@ -96,8 +100,8 @@ int console_printf(const char *format, ...)
     va_list args;
     va_start(args, format);
     vsnprintf(buf, INIT_BUFFER_LENGTH, format, args);
-    drawLine(buf);
+    int numCharsDrawn = drawLine(buf);
     gl_swap_buffer();
     va_end(args);
-    return 0;
+    return numCharsDrawn;
 }
