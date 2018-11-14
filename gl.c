@@ -96,3 +96,142 @@ unsigned int gl_get_char_width(void)
 {
     return font_get_width();
 }
+
+static void poss_anti_aliased_line_pxs(double slope, int i, int j, int x1, int y1, color_t c) {
+    double yactual = slope * (i + 0.5) + y1;
+    double diff = yactual - j - 0.5;
+    if (diff < 0) diff = diff * -1;
+    if (diff < 1) {
+        color_t currColor = gl_read_pixel(i, j);
+        char* curRGBA = (char*)&currColor;
+        char* lineRGBA = (char*)&c;
+        char lineBlue = *(curRGBA) - ((*(curRGBA) - *(lineRGBA)) * (1 - diff));
+        char lineGreen = *(curRGBA + 1) - ((*(curRGBA + 1) - *(lineRGBA + 1)) * (1 - diff));
+        char lineRed = *(curRGBA + 2) - ((*(curRGBA + 2) - *(lineRGBA + 2)) * (1 - diff));
+        gl_draw_pixel(i + x1, j, gl_color(lineRed, lineGreen, lineBlue));
+    }
+}
+
+void gl_draw_line(int x1, int y1, int x2, int y2, color_t c) {
+    if (x2 < x1) {
+        int temp = x1;
+        x1 = x2;
+        x2 = temp;
+        temp = y1;
+        y1 = y2;
+        y2 = temp;
+    }
+    double slope = (double)(y2 - y1) / (double)(x2 - x1);
+    for (int i = 0; i < x2 - x1; i++) {
+        if (slope > 0) {
+            for (int j = y1; j < y2; j++) {
+                poss_anti_aliased_line_pxs(slope, i, j, x1, y1, c);
+            }
+        } else if (slope < 0) {
+            for (int j = y1; j > y2; j--) {
+                poss_anti_aliased_line_pxs(slope, i, j, x1, y1, c);
+            }
+        } else {
+            gl_draw_pixel(i + x1, y1, c);
+        }
+    }
+
+}
+
+static void drawFillLines(int ymid, int xmid, int ydiff1, int xdiff1, int ydiff2, int xdiff2, int yother, int xother, int j, color_t c) {
+    double ptSlope = (double)(yother - ymid)/(double)(xother - xmid);
+    double ptxactual = (j + ptSlope * xother - yother) / ptSlope;
+    double oppSlope = (double)(ydiff1 - ydiff2)/(double)(xdiff1 - xdiff2);
+    double oppxactual = (j + oppSlope * xdiff1 - ydiff1) / oppSlope;
+    if (ptxactual > oppxactual) { 
+        oppxactual = oppxactual + 1;
+    } else {
+        ptxactual = ptxactual + 1;
+    }
+    gl_draw_line((int)ptxactual, j, (int)oppxactual, j, c);
+}
+
+void gl_draw_triangle(int x1, int y1, int x2, int y2, int x3, int y3, color_t c) {
+    gl_draw_line(x1, y1, x2, y2, c);
+    gl_draw_line(x2, y2, x3, y3, c);
+    gl_draw_line(x3, y3, x1, y1, c);
+    if ((y1 < y2 && y1 > y3) || (y1 > y2 && y1 < y3)) {
+        if (y2 < y3) {
+            for (int j = y1; j < y3; j++) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y3, x3, j, c);
+            }
+            for (int j = y1; j > y2; j--) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y2, x2, j, c);
+            }
+        } else {
+            for (int j = y1; j > y3; j--) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y3, x3, j, c);
+            }
+            for (int j = y1; j < y1; j++) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y2, x2, j, c);
+            }
+        }
+    } else if ((y2 < y1 && y2 > y3) || (y2 > y1 && y2 < y3)) {
+        if (y1 < y3) {
+            for (int j = y2; j < y3; j++) {
+                drawFillLines(y2, x2, y1, x1, y3, x3, y3, x3, j, c);
+            }
+            for (int j = y2; j > y1; j--) {
+                drawFillLines(y2, x2, y1, x1, y3, x3, y1, x1, j, c);
+            }
+        } else {
+            for (int j = y2; j > y3; j--) {
+                drawFillLines(y2, x2, y1, x1, y3, x3, y3, x3, j, c);
+            }   
+            for (int j = y2; j < y1; j++) {
+                drawFillLines(y2, x2, y1, x1, y3, x3, y1, x1, j, c);
+            }
+        }
+    } else if ((y3 < y1 && y3 > y2) || (y3 > y1 && y3 < y2)) {
+        if (y1 < y2) {
+            for (int j = y3; j < y2; j++) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y2, x2, j, c);
+            }
+            for (int j = y3; j > y1; j--) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y1, x1, j, c);
+            }
+        } else {
+            for (int j = y3; j > y2; j--) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y2, x2, j, c);
+            }
+            for (int j = y3; j < y1; j++) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y1, x1, j, c);
+            }
+        }
+    } else if (y1 == y2) {
+        if (y1 < y3) {
+            for (int j = y1; j < y3; j++) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y3, x3, j, c);
+            }
+        } else {
+            for (int j = y1; j > y3; j--) {
+                drawFillLines(y1, x1, y2, x2, y3, x3, y3, x3, j, c);
+            }
+       }
+    } else if (y2 == y3) {
+        if (y2 < y1) {
+            for (int j = y2; j < y1; j++) {
+                drawFillLines(y2, x2, y3, x3, y1, x1, y1, x1, j, c);
+            } 
+        } else {
+            for (int j = y2; j > y1; j--) {
+                drawFillLines(y2, x2, y3, x3, y1, x1, y1, x1, j, c);
+            }
+       }
+    } else if (y3 == y1) {
+        if (y3 < y2) {
+            for (int j = y3; j < y2; j++) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y2, x2, j, c);
+            } 
+        } else {
+            for (int j = y3; j > y2; j--) {
+                drawFillLines(y3, x3, y1, x1, y2, x2, y2, x2, j, c);
+            }
+       }
+    }
+}
