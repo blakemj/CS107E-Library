@@ -52,12 +52,14 @@ static void test_gl(void)
     // Basic rectangle should be blue in center of screen
 //    gl_draw_rect(_WIDTH/2 - 20, _HEIGHT/2 - 20, 40, 40, GL_BLUE);
 
-    gl_draw_line(2, 2, 600, 250, GL_RED);
+//    gl_draw_line(2, 2, 600, 250, GL_RED);
 
-    gl_draw_line(500, 500, 10, 2, GL_WHITE);
+//    gl_draw_line(500, 500, 10, 2, GL_WHITE);
 
     gl_draw_triangle(250, 5, 10, 300, 150, 345, GL_GREEN);
-
+    gl_draw_triangle(250, 5, 10, 5, 37, 200, GL_AMBER);
+//    gl_draw_triangle(25, 5, 10, 300, 15, 345, GL_BLUE);
+    gl_draw_triangle(250, 5, 250, 300, 255, 345, GL_RED);
 //    gl_clear(gl_color(0xFF, 0, 0)); // Background should be purple.
 
     // Should write a single character

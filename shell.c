@@ -502,7 +502,7 @@ int shell_evaluate(const char *line)
     } else
     if (strcmp(tokens[0], "history") == 0) {
         errorReturned = commands[5].fn(tokenIndex, (const char**)tokens);
-    } else {
+    } else if(strcmp(tokens[0], "!!") != 0 && tokens[0][0] != '!'){
         shell_printf("Error: Not a command.\n");
     }
     free(temp);
