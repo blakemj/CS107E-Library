@@ -21,10 +21,12 @@ typedef struct {
 // fb is volatile because the GPU will write to it
 static volatile fb_config_t fb __attribute__ ((aligned(16)));
 
+/*
+* This function initializes the frambuffer to the certain width, height, depth, and mode. depending on the mode, 
+* a single or double framebuffer could be created.
+*/
 void fb_init(unsigned int width, unsigned int height, unsigned int depth, unsigned int mode)
 {
-  // TODO: add code to handle double buffering depending on mode
-
   fb.width = width;
   fb.virtual_width = width;
   fb.height = height;
@@ -47,6 +49,11 @@ void fb_init(unsigned int width, unsigned int height, unsigned int depth, unsign
   (void) mailbox_read(MAILBOX_FRAMEBUFFER);
 }
 
+
+/*
+* This function will swap the framebuffer after copying all of the contents to the other buffer. This ensures
+* that everything is saved.
+*/
 void fb_swap_buffer(void)
 {
     if (fb.height == fb.virtual_height) return;
@@ -61,6 +68,11 @@ void fb_swap_buffer(void)
     (void) mailbox_read(MAILBOX_FRAMEBUFFER);
 }
 
+
+/*
+* This funtion will return whichever buffer is the caller buffer. This depends on the offset, so if the 
+* GPU is reading the buffer with the offset, then the CPU should read the other and vice versa.
+*/
 unsigned char* fb_get_draw_buffer(void)
 {
     if (fb.height == fb.virtual_height) return (unsigned char*)fb.framebuffer;
@@ -72,27 +84,27 @@ unsigned char* fb_get_draw_buffer(void)
     return 0;
 }
 
+// This function simply returns the width of the framebuffer
 unsigned int fb_get_width(void)
 {
-    // TODO: implement this function
     return fb.width;
 }
 
+// This function simply returns the height of the framebuffer
 unsigned int fb_get_height(void)
 {
-    // TODO: implement this function
     return fb.height;
 }
 
+// This funtion simply returns the depth of the framebuffer
 unsigned int fb_get_depth(void)
 {
-    // TODO: implement this function
     return fb.depth;
 }
 
+// This funtion simply returns the pitch of the framebuffer
 unsigned int fb_get_pitch(void)
 {
-    // TODO: implement this function
     return fb.pitch;
 }
 

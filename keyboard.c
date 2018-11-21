@@ -2,6 +2,10 @@
 #include "gpioextra.h"
 #include "keyboard.h"
 #include "ps2.h"
+#include "interrupts.h"
+#include "ringbuffer.h"
+#include "printf.h"
+#include "assert.h"
 
 //This defines how many bits represent the data being sent
 #define NUM_DATA_BITS 8
@@ -19,10 +23,46 @@ static unsigned int saved_modifiers = 0;
 //This keeps track of the key that was previously pressed
 static unsigned char prv_key = PS2_KEY_NONE;
 
+static rb_t *rb;
+
 //This waits until a falling clock edge occurs, representing the time to read a bit
 void wait_for_falling_clock_edge() {
     while (gpio_read(CLK) == 0) {}
     while (gpio_read(CLK) == 1) {}
+}
+
+static int correct_bit = 0;
+static int bit_num = 0;
+static int scancode = 0;
+static int numOnes = 0;
+
+static void falling_edge_detected(unsigned int pc) {
+    if (gpio_check_and_clear_event(CLK)) {
+        int bit = gpio_read(DATA);
+        if (!bit_num && !bit) {
+            correct_bit = 1;
+            bit_num++;
+        } else if (correct_bit && bit_num == NUM_DATA_BITS + 1) {
+            if (bit) numOnes++;
+            if (numOnes % 2 != 1) correct_bit = 0;
+            bit_num++;
+        } else if (correct_bit && bit_num == NUM_DATA_BITS + 2) {
+            if (bit) rb_enqueue(rb, scancode);
+            correct_bit = 0;
+            scancode = 0;
+            bit_num = 0;
+            numOnes = 0;
+        } else if (correct_bit) {
+            scancode = scancode | (bit << (bit_num - 1));
+            if (bit) numOnes++;
+            bit_num++;
+        } else {
+            correct_bit = 0;
+            scancode = 0;
+            bit_num = 0;
+            numOnes = 0;
+        }
+    }
 }
 
 //This initializes the pins as pullup input pins for the clock and data
@@ -33,6 +73,14 @@ void keyboard_init(void)
  
     gpio_set_input(DATA); 
     gpio_set_pullup(DATA); 
+
+    rb = rb_new();
+
+    gpio_enable_event_detection(CLK, GPIO_DETECT_FALLING_EDGE);
+    bool ok = interrupts_attach_handler(falling_edge_detected);
+    assert(ok);
+    interrupts_enable_source(INTERRUPTS_GPIO3);
+    interrupts_global_enable();
 }
 
 /*
@@ -51,7 +99,12 @@ void keyboard_init(void)
 */
 unsigned char keyboard_read_scancode(void)
 {   
-    wait_for_falling_clock_edge();
+    while (1) {
+        int charCode = 0;
+        if (rb_dequeue(rb, &charCode)) return (unsigned char) charCode;  
+    }
+    
+ /*   wait_for_falling_clock_edge();
     if (gpio_read(DATA) == 0) {
         int binaryDigit = 1;
         int numOnes = 0;
@@ -74,7 +127,7 @@ unsigned char keyboard_read_scancode(void)
     } else {
         return keyboard_read_scancode();
     }
-    return 0;
+    return 0; */
 }
 
 /*

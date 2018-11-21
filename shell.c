@@ -196,7 +196,7 @@ void shell_bell(void)
 * are any characters to be moved. If deleting a whole line, this will not attempt to move
 * any characters, but will simply delete everything.
 */
-static int backspace(int placeOnLine, int* size, char* buf, int delete) {
+static int backspace(int placeOnLine, int* size, char* buf, int del) {
     if (placeOnLine != 0) {
         shell_printf("\b \b");
         placeOnLine--;
@@ -204,28 +204,32 @@ static int backspace(int placeOnLine, int* size, char* buf, int delete) {
         shell_bell();
         placeOnLine--;
     }
-    if (placeOnLine > -1 && !delete) {
+    if (placeOnLine > -1 && !del) {
         placeOnLine--;
         for (int moveBack = placeOnLine + 1; moveBack < *size + 1; moveBack++) {
             buf[moveBack] = buf[moveBack + 1];
         }
         (*size)--;
-        for (int putBack = placeOnLine + 1; putBack < *size; putBack++) shell_printf("%c", buf[putBack]);
-        shell_printf(" ");
-        for (int bringCursorBack = placeOnLine + 1; bringCursorBack < *size + 1; bringCursorBack++) shell_printf("\b");
-        }
+        char toMoveEverything[2 * (*size - placeOnLine) + 1];
+        memcpy(toMoveEverything, &buf[placeOnLine + 1], *size - placeOnLine - 1);
+        toMoveEverything[*size - placeOnLine - 1] = ' ';
+        for (int bringCursorBack = 0; bringCursorBack < *size - placeOnLine; bringCursorBack++) toMoveEverything[*size - placeOnLine + bringCursorBack] = '\b';
+        toMoveEverything[2 * (*size - placeOnLine)] = '\0';
+        shell_printf("%s", toMoveEverything);
+    }
     return placeOnLine;
-}
+} 
 
 /*
 * This helper function is used to move the cursor to the end of the line.
 */
 static int moveCursorToEnd(int placeholder, int size, char* buf) {
-    for (int place = placeholder; place < size; place++) {
-        shell_printf("%c", buf[place]);
-    }
+    char printRestOfLine[size - placeholder + 1];
+    memcpy(printRestOfLine, &buf[placeholder], size - placeholder);
+    printRestOfLine[size - placeholder] = '\0';
+    shell_printf("%s", printRestOfLine);
     return size;
-}
+} 
 
 /*
 * This function is used to delete an entire line (control u). This will
@@ -233,7 +237,7 @@ static int moveCursorToEnd(int placeholder, int size, char* buf) {
 * will change the size.
 */
 static int delete(int placeholder, int * size, char* buf) {
-    placeholder = moveCursorToEnd(placeholder, *size, buf);
+    placeholder = *size;
     while (placeholder != 0) {
         placeholder = backspace(placeholder, size, buf, 1);
         (*size)--;
@@ -373,8 +377,13 @@ void shell_readline(char buf[], int bufsize)
             buf[i] = userTyped;
             shell_printf("%c", userTyped);
             size++;
-            moveCursorToEnd(i + 1, size, buf);
-            for (int bringCursorBack = i+1; bringCursorBack < size; bringCursorBack++) shell_printf("\b");
+            if (size != i + 1) {
+                moveCursorToEnd(i + 1, size, buf);
+                char movingCursorBack[size - i];
+                for (int bringCursorBack = 0; bringCursorBack < size - i - 1; bringCursorBack++) movingCursorBack[bringCursorBack] = '\b';
+                movingCursorBack[size - i - 1] = '\0';
+                shell_printf("%s", movingCursorBack);
+            }
         }
     }
     buf[bufsize - 1] = '\0';
@@ -502,7 +511,7 @@ int shell_evaluate(const char *line)
     } else
     if (strcmp(tokens[0], "history") == 0) {
         errorReturned = commands[5].fn(tokenIndex, (const char**)tokens);
-    } else {
+    } else if(strcmp(tokens[0], "!!") != 0 && tokens[0][0] != '!'){
         shell_printf("Error: Not a command.\n");
     }
     free(temp);
