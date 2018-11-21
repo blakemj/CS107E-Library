@@ -22,7 +22,7 @@ const unsigned int DATA = GPIO_PIN24;
 static unsigned int saved_modifiers = 0;
 //This keeps track of the key that was previously pressed
 static unsigned char prv_key = PS2_KEY_NONE;
-
+// This keeps track of the ringbuffer where the scancodes are kept
 static rb_t *rb;
 
 //This waits until a falling clock edge occurs, representing the time to read a bit
@@ -31,11 +31,25 @@ void wait_for_falling_clock_edge() {
     while (gpio_read(CLK) == 1) {}
 }
 
+//These variables keep track of bit data so it the interrput can check and save scancodes
 static int correct_bit = 0;
 static int bit_num = 0;
 static int scancode = 0;
 static int numOnes = 0;
 
+/*
+* This function is the interrupt handler for when a falling edge is detected. This will
+* check the bit and depending on the type, will do the respective thing with it. If it is
+* the first bit of a scancode, it will check if it is 0 (start bit). If so, it will set the
+* correct_bit to 1 to signal that further reading of bits should continue. Then, it will 
+* check the next NUM_DATA_BITS number of bits and shift them to their spot in the scancode.
+* Their spot depends on which data bit (first data bit goes in the least significant bit, etc).
+* This is saved in the scancode, and the number of ones are counted. Then, when the partity bit
+* comes it, it will add one to the number of ones and check to see if it is odd (odd parity).
+* Finally, for the final bit, it checks that it is one (stop  bit), and if so will save the 
+* scancode in the ringbuffer. This will then reset everything back to 0. If at any point, there
+* is a mistake, everything gets reset to 0, and it tries again. 
+*/
 static void falling_edge_detected(unsigned int pc) {
     if (gpio_check_and_clear_event(CLK)) {
         int bit = gpio_read(DATA);
@@ -66,6 +80,7 @@ static void falling_edge_detected(unsigned int pc) {
 }
 
 //This initializes the pins as pullup input pins for the clock and data
+// This also initializes the interrupts
 void keyboard_init(void) 
 {
     gpio_set_input(CLK); 
@@ -84,18 +99,9 @@ void keyboard_init(void)
 }
 
 /*
-* This function will use the clock and data inputs in order to read a scancode
-* being sent from the keyboard. The function waits until the clock has a falling
-* edge, and when it does, it will read the first bit, which should be a start bit
-* which is always low. If it is a start bit, it will then read all of the data bits
-* one by one, waiting for a falling clock edge before each one. After saving these
-* (and placing them into an int to represent the character code being read; they are
-* placed in the correct digit as they are passed in least significant bit first) it 
-* will check that the number of ones that have been sent in correspond the the odd
-* or even number expected with the parity bit. If it passes this, the scancode then
-* checks for a stop bit. If it passes this, it will return the character scancode
-* that was read. If any test fails, it will call itself to try again, and will return
-* whatever that gives back.
+* This function will continuously loop and each time it will try to dequeue from the ringbuffer.
+* Once it is able to, it will return the unsigned char that was saved in the ringbuffer as a 
+* scancode.
 */
 unsigned char keyboard_read_scancode(void)
 {   
@@ -103,31 +109,6 @@ unsigned char keyboard_read_scancode(void)
         int charCode = 0;
         if (rb_dequeue(rb, &charCode)) return (unsigned char) charCode;  
     }
-    
- /*   wait_for_falling_clock_edge();
-    if (gpio_read(DATA) == 0) {
-        int binaryDigit = 1;
-        int numOnes = 0;
-        unsigned int totalChar = 0; 
-        //Read 8 Data bits
-        for (int i = NUM_DATA_BITS - 1; i >=0; i--) {
-            wait_for_falling_clock_edge();
-            totalChar = totalChar + binaryDigit * gpio_read(DATA);
-            if (gpio_read(DATA) == 1) numOnes++;
-            binaryDigit = binaryDigit * 2;
-        }
-        //Check Parity Bit
-        wait_for_falling_clock_edge();
-        if (gpio_read(DATA) == 1) numOnes++;
-        if (numOnes % 2 != 1) totalChar = keyboard_read_scancode();
-        //Check Stop Bit
-        wait_for_falling_clock_edge();
-        if(gpio_read(DATA) == 0) totalChar =  keyboard_read_scancode();
-        return totalChar;
-    } else {
-        return keyboard_read_scancode();
-    }
-    return 0; */
 }
 
 /*
