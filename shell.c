@@ -224,10 +224,9 @@ static int backspace(int placeOnLine, int* size, char* buf, int del) {
 * This helper function is used to move the cursor to the end of the line.
 */
 static int moveCursorToEnd(int placeholder, int size, char* buf) {
-    char printRestOfLine[size - placeholder + 1];
-    memcpy(printRestOfLine, &buf[placeholder], size - placeholder);
-    printRestOfLine[size - placeholder] = '\0';
-    shell_printf("%s", printRestOfLine);
+    for (int place = placeholder; place < size; place++) {
+        shell_printf("%c", buf[place]);
+    }
     return size;
 } 
 
@@ -237,7 +236,7 @@ static int moveCursorToEnd(int placeholder, int size, char* buf) {
 * will change the size.
 */
 static int delete(int placeholder, int * size, char* buf) {
-    placeholder = *size;
+    placeholder = moveCursorToEnd(placeholder, *size, buf);
     while (placeholder != 0) {
         placeholder = backspace(placeholder, size, buf, 1);
         (*size)--;
@@ -294,7 +293,7 @@ static int printNewCommand(char* buf, int placeholder, int* size, int bufsize) {
 * allowed to move further.
 */
 static int searchingUpHistory(char* buf, int placeholder, int* size, int bufsize) {
-    if (searchingHistory == -1) searchingHistory++;
+    if (searchingHistory == -2) searchingHistory = searchingHistory + 2;
     if (searchingHistory < numHistoryInArray) {
         placeholder = printNewCommand(buf, placeholder, size, bufsize);
         searchingHistory++;
@@ -312,11 +311,11 @@ static int searchingUpHistory(char* buf, int placeholder, int* size, int bufsize
 * will no longer be able to move further.
 */
 static int searchingDownHistory(char* buf, int placeholder, int* size, int bufsize) {
-    if (searchingHistory == numHistoryInArray) searchingHistory--;
-    if (searchingHistory > 0) {
-        searchingHistory--;
+    if (searchingHistory == numHistoryInArray) searchingHistory = searchingHistory - 2;
+    if (searchingHistory >= 0) {
         placeholder = printNewCommand(buf, placeholder, size, bufsize);
-    } else if (searchingHistory == 0) {
+        searchingHistory--;
+    } else if (searchingHistory == -1) {
         placeholder = delete(placeholder, size, buf);
         *size = 0;
         searchingHistory--;
