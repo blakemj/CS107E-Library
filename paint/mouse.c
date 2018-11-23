@@ -42,15 +42,17 @@ bool mouse_init(void)
     interrupts_global_enable();
 
   mouse_write(CMD_RESET);
-  int ack1 = mouse_read_scancode();
-  printf("\n%x\n", ack1);
-  int bat = mouse_read_scancode();
-  int id = mouse_read_scancode();
-  printf("\n%x, %x, %x\n", ack1, bat, id);
+  timer_delay_us(500);
+//  int ack1 = mouse_read_scancode();
+//  printf("\n%x\n", ack1);
+//  int bat = mouse_read_scancode();
+//  int id = mouse_read_scancode();
+//  printf("\n%x, %x, %x\n", ack1, bat, id);
   mouse_write(CMD_ENABLE_DATA_REPORTING);
-  int ack2 = mouse_read_scancode();
+//  int ack2 = mouse_read_scancode();
   // FIXME: Initialize mouse.
-  printf("\n%x, %x, %x, %x\n", ack1, bat, id, ack2);
+//  printf("\n%x, %x, %x, %x\n", ack1, bat, id, ack2);
+  timer_delay_us(500);
   return true;
 }
 
@@ -65,7 +67,6 @@ mouse_event_t mouse_read_event(void)
   evt.y_overflow = scancodeOne & (1 << 7);
   int scancodeTwo = mouse_read_scancode();
   int scancodeThree = mouse_read_scancode();
-  printf("%x, %x, %x\n", scancodeOne, scancodeTwo, scancodeThree);
   if (scancodeOne & (1 << 4)) {
       evt.dx = (-1) * scancodeTwo;
   } else {
@@ -74,7 +75,7 @@ mouse_event_t mouse_read_event(void)
   if (scancodeOne & (1 << 5)) {
       evt.dy = (-1) * scancodeThree;
   } else {
-      evt.dx = scancodeThree;
+      evt.dy = scancodeThree;
   }
   // FIXME: Read scancode(s) and fill in evt.
 
@@ -151,13 +152,13 @@ static int correct_bit = 0;
 static int bit_num = 0;
 static int scancode = 0;
 static int numOnes = 0;
-static int zeroyet = 0;
-static int count = 0;
+//static int zeroyet = 0;
+//static int count = 0;
 static void mouse_handler(unsigned int pc)
 {
     if (gpio_check_and_clear_event(MOUSE_CLK)) {
         int bit = gpio_read(MOUSE_DATA);
-        printf("%x", bit);
+  //      printf("%x", bit);
         if (!bit_num && !bit) {
             correct_bit = 1;
             bit_num++;
@@ -167,26 +168,26 @@ static void mouse_handler(unsigned int pc)
             bit_num++;
         } else if (correct_bit && bit_num == NUM_DATA_BITS + 2) {
             if (bit) rb_enqueue(rb, scancode);
-            count++;
+//            count++;
             correct_bit = 0;
             scancode = 0;
             bit_num = 0;
             numOnes = 0;
         } else if (correct_bit) {
-            if (count < 2) {
-                if (!bit && !zeroyet) {
-                    zeroyet = 1;
-                    return;
-                }
-                if (!bit && zeroyet) {
-                    zeroyet = 0;
-                }
-                if (bit && zeroyet) {
-                    zeroyet = 0;
-                    bit_num++;
-                    return;
-                }
-            }
+  //          if (count < 2) {
+    //            if (!bit && !zeroyet) {
+      //              zeroyet = 1;
+        //            return;
+          //      }
+            //    if (!bit && zeroyet) {
+              //      zeroyet = 0;
+//                }
+  //              if (bit && zeroyet) {
+    //                zeroyet = 0;
+      //              bit_num++;
+        //            return;
+          //      }
+         //   }
 //            printf("%x", bit);
             scancode = scancode | (bit << (bit_num - 1));
             if (bit) numOnes++;
