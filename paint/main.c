@@ -24,14 +24,22 @@ void main(void)
       mouse_event_t evt5 = mouse_read_event();
       int dx = (evt1.dx + evt2.dx + evt3.dx + evt4.dx + evt5.dx) / 5;
       int dy = (evt1.dy + evt2.dy + evt3.dy + evt4.dy + evt5.dy) / 5;
-
-      if ((dx < 10 || dx > 10) && xCoord + dx > 0 && xCoord + dx < 500) xCoord = xCoord + dx;
-      if ((dy < 10 || dy > 10) && yCoord - dy > 0 && yCoord - dy < 500) yCoord = yCoord - dy;
+      if (dx > 0) {
+          if ((dx < 10) && xCoord + dx > 0 && xCoord + dx < 500) xCoord = xCoord + dx;
+      } else {
+          dx = dx * (-1);
+          if ((dx < 10) && xCoord - dx > 0 && xCoord - dx < 500) xCoord = xCoord - dx;
+      }
+      if (dx > 0) {
+          if ((dy < 10) && yCoord - dy > 0 && yCoord - dy < 500) yCoord = yCoord - dy;
+      } else {
+          dy = dy * (-1);
+          if ((dy < 10) && yCoord - dy > 0 && yCoord - dy < 500) yCoord = yCoord + dy;
+      }
       if (evt1.left || evt2.left || evt3.left || evt4.left || evt5.left) gl_draw_pixel(xCoord - 1, yCoord - 1, GL_RED);
       count++;
       gl_draw_rect(xCoord, yCoord, 4, 4, GL_BLUE);
-//      timer_delay_us(25);
-      if (count == 10) {
+      if (count == 5) {
           gl_swap_buffer();
           count = 0;
       }
