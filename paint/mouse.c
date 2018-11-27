@@ -7,20 +7,28 @@
 #include "assert.h"
 #include "printf.h"
 
+//These define the mouse gpio pins
 #define MOUSE_CLK GPIO_PIN23
 #define MOUSE_DATA GPIO_PIN24
 
+//This defines the number of data bits being read/written
 #define NUM_DATA_BITS 8
 
+//These define commands to write to the mouse
 #define CMD_RESET 0xFF
 #define CMD_ENABLE_DATA_REPORTING 0xF4
 
+//This initializes the ringbuffer
 static rb_t *rb;
 
+//These allow for functions to be called
 static void mouse_write(unsigned char data);
 int mouse_read_scancode(void);
 static void mouse_handler(unsigned int pc);
 
+/*
+* This spins until the clock has a falling edge
+*/
 void wait_for_falling_clock_edge() {
     while (gpio_read(MOUSE_CLK) == 0) {}
     while (gpio_read(MOUSE_CLK) == 1) {}
@@ -29,18 +37,18 @@ void wait_for_falling_clock_edge() {
 bool mouse_init(void)
 {
   rb = rb_new();
-
+  //This initializes the gpio pins
   gpio_set_function(MOUSE_CLK, GPIO_FUNC_INPUT);
   gpio_set_pullup(MOUSE_CLK);
   gpio_set_function(MOUSE_DATA, GPIO_FUNC_INPUT);
   gpio_set_pullup(MOUSE_DATA);
-
+  //This initializes the interrupts
   gpio_enable_event_detection(MOUSE_CLK, GPIO_DETECT_FALLING_EDGE);
   bool ok = interrupts_attach_handler(mouse_handler);
   assert(ok);
   interrupts_enable_source(INTERRUPTS_GPIO3);
   interrupts_global_enable();
-
+  //This sets up the mouse
   timer_delay_us(50);
   mouse_write(CMD_RESET);
   unsigned int test = mouse_read_scancode();
