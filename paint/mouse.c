@@ -35,16 +35,19 @@ bool mouse_init(void)
   gpio_set_function(MOUSE_DATA, GPIO_FUNC_INPUT);
   gpio_set_pullup(MOUSE_DATA);
 
-    gpio_enable_event_detection(MOUSE_CLK, GPIO_DETECT_FALLING_EDGE);
-    bool ok = interrupts_attach_handler(mouse_handler);
-    assert(ok);
-    interrupts_enable_source(INTERRUPTS_GPIO3);
-    interrupts_global_enable();
+  gpio_enable_event_detection(MOUSE_CLK, GPIO_DETECT_FALLING_EDGE);
+  bool ok = interrupts_attach_handler(mouse_handler);
+  assert(ok);
+  interrupts_enable_source(INTERRUPTS_GPIO3);
+  interrupts_global_enable();
 
+  timer_delay_us(50);
   mouse_write(CMD_RESET);
-  timer_delay_us(500);
+  unsigned int test = mouse_read_scancode();
+  if (test != 0xaa) return false;
+  unsigned int id = mouse_read_scancode();
+  if (id != 0x00) return false;
   mouse_write(CMD_ENABLE_DATA_REPORTING);
-  timer_delay_us(500);
   return true;
 }
 
@@ -65,7 +68,7 @@ mouse_event_t mouse_read_event(void)
       evt.dx = scancodeTwo;
   }
   if (scancodeOne & (1 << 5)) {
-      evt.dy = (-1) * (256 -scancodeThree);
+      evt.dy = (-1) * (256 - scancodeThree);
   } else {
       evt.dy = scancodeThree;
   }
