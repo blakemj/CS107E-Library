@@ -34,6 +34,19 @@ void wait_for_falling_clock_edge() {
     while (gpio_read(MOUSE_CLK) == 1) {}
 }
 
+/*
+* This function initializes the mouse for sending scancodes related to button presses and movement.
+* First, this function will set up the gpio pins on the pi as inputs with pullup resistors for the 
+* clock and data to read ones and zeros for reading scancodes. Next, the interrupts are enabled and
+* initialized to detect when a bit is sent from the mouse. Next, the function delays to ensure that
+* the mouse is ready to recieve a scancode. The function will write the reset scancode to the mouse,
+* will ensure that it reads the self-test (BAT) scancode and then the mouse id (0x00) scancode from
+* the mouse. If these fail, the function returns false. Then, the scancode for data reporting is sent
+* to the mouse. (NOTE: for some reason, the mouses that I have used all have acted differently. One of
+* the mouses does not send back actual scancodes until data reporting is sent. The other mouse (which 
+* is the more relaible mouse) does not send ack scancodes. This is why no acknowledgement scancodes 
+* are read)
+*/
 bool mouse_init(void)
 {
   rb = rb_new();
@@ -59,6 +72,13 @@ bool mouse_init(void)
   return true;
 }
 
+/*
+* This function is used to read a full event from the mouse. This takes in the three scancodes that the mouse
+* sends per event and puts them into a mouse_event_t variable. In this, the first scancode is spliced between
+* the three bits for the buttons and the overflow bits. The bits from this scancode that represent the sign of
+* dx and dy are then used to set the mouse event dx and dy (which are scancodes two and three respectively) to
+* positive or negative (based on twos compliment). This function returns that event.
+*/
 mouse_event_t mouse_read_event(void)
 {
   mouse_event_t evt;
@@ -83,14 +103,25 @@ mouse_event_t mouse_read_event(void)
   return evt;
 }
 
+/*
+* This function just spins until the ringbuffer dequeues a scancode. This scancode is then returned.
+*/
 int mouse_read_scancode(void)
 {
     while (1) {
-        int charCode = 0;
-        if (rb_dequeue(rb, &charCode)) return (unsigned char) charCode;  
+        int mouseCode = 0;
+        if (rb_dequeue(rb, &mouseCode)) return mouseCode;  
     }
 }
 
+/*
+* This function writes a scancode (the data) to the mouse. Interrupts are disabled since a falling clock
+* edge is used to send data bits. This function will set the clock and the data to outputs. After pulling
+* the clock pin to low for 100 us, the data pin is pulled low to signal a start. Then the clock is reset 
+* to be input, and the falling clock edges are read. This function will write the data bit by bit in little
+* endian format to the mouse, and will then send a parity bit. After this, the data pin is set to input
+* and we spin until we recieve an ack bit from the mouse. Finally, the interrupts are reset.
+*/
 static void mouse_write(unsigned char data)
 {
   interrupts_disable_source(INTERRUPTS_GPIO3);
@@ -119,10 +150,16 @@ static void mouse_write(unsigned char data)
   interrupts_enable_source(INTERRUPTS_GPIO3);
 }
 
+//These variables keep track of parts of the handler
 static int correct_bit = 0;
 static int bit_num = 0;
 static int scancode = 0;
 static int numOnes = 0;
+/*
+* This function will read in the bit that is sent along the data line along with a falling clock
+* edge. This function will keep track of the data/scancode as well as checking for stop, parity, and
+* start bits. If any of these fail, the funciton will reset. 
+*/
 static void mouse_handler(unsigned int pc)
 {
     if (gpio_check_and_clear_event(MOUSE_CLK)) {
