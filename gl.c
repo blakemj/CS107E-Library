@@ -200,18 +200,18 @@ void gl_draw_line(int x1, int y1, int x2, int y2, color_t c) {
             }
         }
     } else if (slope < 0) {
-        for (int j = 0; j > y2 - y1; j--) {
+        for (int j = 0; j < y2 - y1; j++) {
             for (int i = 0; i < x2 - x1; i++) {
                 poss_anti_aliased_line_pxs(slope, i, j, x1, y1, c);
             }
         }
     } else {
         if (x2 == x1) {
-            for (int j = 0; j < y2 - y1; j++) {
+            for (int j = 0; j <= y2 - y1; j++) {
                 gl_draw_pixel(x1,j + y1, c);
             }
         } else {
-            for (int i = 0; i < x2 - x1; i++) {
+            for (int i = 0; i <= x2 - x1; i++) {
                 gl_draw_pixel(i + x1, y1, c);
             }
         }
